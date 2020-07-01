@@ -11,6 +11,7 @@ namespace CodeWatcher
         Timer _timer;
         FileSystemWatcher _watcher;
         string _watchPath;
+        string _logPath;
         public event EventHandler<DoWorkEventArgs> Changed;
         public event ErrorEventHandler Error;
         int _saveInterval = 3;
@@ -62,7 +63,7 @@ namespace CodeWatcher
         }
 
         public string[] Extensions { get; set; }
-        public string LogPath { get; set; }
+        public string LogPath { get => _logPath; set { if (_logPath != value) { _logPath = value; _initiateWatcher(); } } }
         public string WatchPath { get => _watchPath; set { if (_watchPath != value) { _watchPath = value; _initiateWatcher(); } } }
 
         public bool IsWatching
@@ -92,6 +93,18 @@ namespace CodeWatcher
                 if (System.IO.File.Exists(LogPath) && System.IO.File.Exists(fci.Path) && PathUtility.IsSameFile(fci.Path, LogPath)) return;
                 if (Table.Add(fci))
                     Changed?.Invoke(this, new DoWorkEventArgs(fci));
+            }
+            catch (Exception ex)
+            {
+                Error?.Invoke(this, new ErrorEventArgs(ex));
+            }
+        }
+
+        public void FireEvent()
+        {
+            try
+            {
+                Changed?.Invoke(this, new DoWorkEventArgs(null));
             }
             catch (Exception ex)
             {
@@ -147,7 +160,12 @@ namespace CodeWatcher
 
         internal void ClearAll()
         {
-            try { File.Delete(LogPath); } catch { }
+            try
+            {
+                File.Copy(LogPath, LogPath + "_bak");
+                File.Delete(LogPath);
+            }
+            catch { }
             Table = new FileChangeTable(LogPath);
             Changed?.Invoke(this, new DoWorkEventArgs(null));
         }
@@ -185,6 +203,7 @@ namespace CodeWatcher
         {
             timer.Interval = randTest.Next(100, maxMS);
             var fci = tester.GetFileChangeTestItem(DateTime.Now);
+            if (fci == null) return;
             fci.AuxInfo = "TESTING";
             testRuns++;
             try

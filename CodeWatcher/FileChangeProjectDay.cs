@@ -13,7 +13,7 @@ namespace CodeWatcher
         public FileChangeProjectDay(DateTime dateTime, FileChangeProject project)
         {
             DateTime = dateTime.Date;
-            Project = project;
+            Project = project; 
         }
 
 

@@ -12,7 +12,7 @@ namespace CodeWatcher.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.4.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.6.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -145,13 +145,73 @@ namespace CodeWatcher.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
-        public int EventScrollPeriod {
+        [global::System.Configuration.DefaultSettingValueAttribute("MidnightBlue")]
+        public global::System.Drawing.Color Accent1 {
             get {
-                return ((int)(this["EventScrollPeriod"]));
+                return ((global::System.Drawing.Color)(this["Accent1"]));
             }
             set {
-                this["EventScrollPeriod"] = value;
+                this["Accent1"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Orange")]
+        public global::System.Drawing.Color Accent2 {
+            get {
+                return ((global::System.Drawing.Color)(this["Accent2"]));
+            }
+            set {
+                this["Accent2"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("White")]
+        public global::System.Drawing.Color Background {
+            get {
+                return ((global::System.Drawing.Color)(this["Background"]));
+            }
+            set {
+                this["Background"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("60")]
+        public int EsTimePeriod {
+            get {
+                return ((int)(this["EsTimePeriod"]));
+            }
+            set {
+                this["EsTimePeriod"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Lime")]
+        public global::System.Drawing.Color Highlight {
+            get {
+                return ((global::System.Drawing.Color)(this["Highlight"]));
+            }
+            set {
+                this["Highlight"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowInfoColumn {
+            get {
+                return ((bool)(this["ShowInfoColumn"]));
+            }
+            set {
+                this["ShowInfoColumn"] = value;
             }
         }
     }

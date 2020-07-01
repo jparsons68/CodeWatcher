@@ -14,13 +14,13 @@ namespace CodeWatcher
             public uint FileAttributes;
 
             [FieldOffset(4)]
-            public FILETIME CreationTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME CreationTime;
 
             [FieldOffset(12)]
-            public FILETIME LastAccessTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastAccessTime;
 
             [FieldOffset(20)]
-            public FILETIME LastWriteTime;
+            public System.Runtime.InteropServices.ComTypes.FILETIME LastWriteTime;
 
             [FieldOffset(28)]
             public uint VolumeSerialNumber;

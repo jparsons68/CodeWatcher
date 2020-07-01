@@ -31,11 +31,35 @@ namespace CodeWatcher
             if (files.Count == 0) return (null);
             // given number of events to generate
             // randomly get a matching file
-            string path = files[rand.Next(files.Count)];
-            FileChangeItem fci = new FileChangeItem(path, dt, _randomChange());
-            return (fci);
+            int ic = 1000;
+            while (ic >= 0)
+            {
+                ic--;
+                string path = files[rand.Next(files.Count)];
+                FileChangeItem fci = FileChangeItem.GetFileChangeItem(path, dt, _randomChange());
+                if (fci != null) return (fci);
+            }
+            return (null);
         }
 
+        public bool GenerateTestLog(string path, int length, DateTime from, DateTime to)
+        {
+            if (files.Count == 0) return (false);
+
+            List<FileChangeItem> collection = new List<FileChangeItem>();
+            for (int i = 0; i < length; i++)
+            {
+                DateTime dt = FileChangeTable.GetRandomDate(from, to);
+                var fci = GetFileChangeTestItem(dt);
+                if (fci != null)
+                    collection.Add(fci);
+            }
+            collection = FileChangeTable.SortAndSanitize(collection);
+
+            FileChangeTable.Write(collection, path);
+
+            return (true);
+        }
         WatcherChangeTypes _randomChange()
         {
             Array values = Enum.GetValues(typeof(WatcherChangeTypes));

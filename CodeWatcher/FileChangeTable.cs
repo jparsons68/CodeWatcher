@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace CodeWatcher
 {
-    public class FileChangeTable
+    public partial class FileChangeTable
     {
         string _logPath;
         bool _dirtyList = false;
@@ -29,6 +30,7 @@ namespace CodeWatcher
                     _sortAndSanitize();
                     _setTimeRange();
                     _organizeIntoProjects();
+                    ActivityTraceBuilder.Build(this);
                 }
             }
         }
@@ -48,13 +50,9 @@ namespace CodeWatcher
         public DateTime StartTime { get; private set; }
         public DateTime EndTime { get; private set; }
 
-        public bool Write()
-        {
-            return (_writeToLogFile());
-        }
         public bool AutoWrite()
         {
-            if (_dirtyList) return (_writeToLogFile());
+            if (_dirtyList) return (Write());
             return (false);
         }
         private void _clearItemCollection()
@@ -65,7 +63,7 @@ namespace CodeWatcher
                 _dirtyList = true;
             }
         }
-         
+
         private void _readFromFileToItemCollection(string path)
         {
             int counter = 0;
@@ -76,7 +74,7 @@ namespace CodeWatcher
                 {
                     while ((line = file.ReadLine()) != null)
                     {
-                        FileChangeItem fci = new FileChangeItem(line);
+                        FileChangeItem fci = FileChangeItem.GetFileChangeItem(line);
                         _add(fci);
                         counter++;
                     }
@@ -88,26 +86,32 @@ namespace CodeWatcher
             }
         }
 
-        WatcherChangeTypes[] _priorityOrder = new WatcherChangeTypes[] {
+        static WatcherChangeTypes[] _priorityOrder = new WatcherChangeTypes[] {
             WatcherChangeTypes.Deleted,
             WatcherChangeTypes.Renamed,
             WatcherChangeTypes.Created,
             WatcherChangeTypes.Changed};
-        private void _sortAndSanitize()
+        internal static List<FileChangeItem> SortAndSanitize(List<FileChangeItem> collection)
         {
             int cmp;
-            ItemCollection.Sort((x, y) =>
+            collection.Sort((x, y) =>
                         ((cmp = DateTime.Compare(x.DateTime, y.DateTime)) != 0 ? cmp :
                         Array.IndexOf(_priorityOrder, x.ChangeType) - Array.IndexOf(_priorityOrder, y.ChangeType)));
 
             // remove later ones with same datetime
-            if (ItemCollection.Count > 1)
+            if (collection.Count > 1)
             {
-                var distinctItems = ItemCollection.Distinct(new DistinctItemComparer());
-                ItemCollection = distinctItems.ToList();
-                _dirtyList = true;
+                var distinctItems = collection.Distinct(new DistinctItemComparer());
+                return (distinctItems.ToList());
             }
+            return (collection);
         }
+        private void _sortAndSanitize()
+        {
+            ItemCollection = SortAndSanitize(ItemCollection);
+            _dirtyList = true;
+        }
+
 
         internal int GetDayIndex(DateTime dateTime)
         {
@@ -131,8 +135,7 @@ namespace CodeWatcher
 
             public int GetHashCode(FileChangeItem fci)
             {
-                return fci.Path.GetHashCode() ^
-                    fci.DateTime.GetHashCode();
+                return fci.Path.GetHashCode() ^ fci.DateTime.GetHashCode();
                 //fci.ChangeType.GetHashCode() ;
             }
         }
@@ -153,39 +156,66 @@ namespace CodeWatcher
 
         internal int GetPeakOpsInDay(DateTime dt0, DateTime dt1)
         {
-            return (ProjectCollection.Max(proj => proj.GetPeakOpsInDay(dt0, dt1)));
+            return ProjectCollection.Max(proj => proj.GetPeakOpsInDay(dt0, dt1));
         }
+        internal int GetPeakOpsInDay()
+        {
+            return (GetPeakOpsInDay(StartTime, EndTime));
+        }
+
 
         internal List<FileChangeProject> GetProjectsWithActivity(DateTime dt0, DateTime dt1)
         {
             return (ProjectCollection.Where(proj => proj.CountChanges(dt0, dt1) > 0).ToList());
         }
 
+        public IEnumerable<FileChangeProject> EachVisibleProject()
+        {
+            foreach (var proj in ProjectCollection)
+                if (proj.Visible) yield return proj;
+        }
+        public int VisibleProjectCount
+        {
+            get
+            {
+                return ProjectCollection.Sum(proj => proj.Visible ? 1 : 0);
+            }
+        }
+
+        public int TotalMinutesSelected { get; private set; }
+        public string WorkSummary { get; private set; }
+
         private void _setTimeRange()
         {
             // actual time range
-            DateTime t0 = DateTime.MaxValue;
-            DateTime t1 = DateTime.MinValue;
-            foreach (var fci in ItemCollection)
+            if (ItemCollection.Count > 0)
             {
-                if (fci.DateTime < t0) t0 = fci.DateTime;
-                if (fci.DateTime > t1) t1 = fci.DateTime;
+                StartTime = ItemCollection.First().DateTime;
+                EndTime = ItemCollection.Last().DateTime;
             }
-            StartTime = t0;
-            EndTime = t1;
+            else
+            {
+                StartTime = DateTime.MaxValue;
+                EndTime = DateTime.MinValue;
+            }
         }
         private void _organizeIntoProjects()
         {
             // get projects listing 
             // ragged and by day collections
             // row per project
+            List<FileChangeProject> temp = new List<FileChangeProject>(this.ProjectCollection);
+
             this.ProjectCollection.Clear();
             foreach (var fci in ItemCollection)
             {
                 FileChangeProject project = _getProject(fci);
                 if (project == null)
                 {
-                    project = new FileChangeProject(fci.ProjectPath, this);
+                    // try to get matching from old list
+                    project = temp.FirstOrDefault(proj => proj.Path == fci.ProjectPath);
+                    if (project != null) { project.Reinitialize(); }
+                    else project = new FileChangeProject(fci.ProjectPath, this);
                     ProjectCollection.Add(project);
                 }
                 project.Add(fci);
@@ -193,6 +223,7 @@ namespace CodeWatcher
 
             ProjectCollection.Sort((x, y) => string.Compare(x.Name, y.Name));
 
+            //ClearActivityGrid();
         }
 
         private FileChangeProject _getProject(FileChangeItem fci)
@@ -208,19 +239,19 @@ namespace CodeWatcher
             _sortAndSanitize();
             _setTimeRange();
             _organizeIntoProjects();
+            ActivityTraceBuilder.Build(this);
             return (true);
         }
 
-        private bool _writeToLogFile()
+        static internal bool Write(List<FileChangeItem> collection, string path)
         {
-            if (LogPath == null) return (false);
+            if (path == null) return (false);
 
-            _dirtyList = false;
             try
             {
-                using (StreamWriter file = new StreamWriter(LogPath, false))
+                using (StreamWriter file = new StreamWriter(path, false))
                 {
-                    foreach (var fci in ItemCollection)
+                    foreach (var fci in collection)
                         file.WriteLine(fci.ToString());
                 }
                 return (true);
@@ -230,6 +261,13 @@ namespace CodeWatcher
 
             }
             return (false);
+        }
+
+        public bool Write()
+        {
+            if (LogPath == null) return (false);
+            _dirtyList = false;
+            return (Write(ItemCollection, LogPath));
         }
 
         public static DateTime Round(DateTime date, TimeSpan span)
@@ -253,6 +291,12 @@ namespace CodeWatcher
         }
 
 
+        public static int InclusiveDaySpan(DateTime t0, DateTime t1)
+        {
+            var span = (t1.Date - t0.Date);
+            return ((t1.Date - t0.Date).Days + 1);
+        }
+
         public static IEnumerable<DateTime> EachDay(DateTime from, DateTime thru)
         {
             for (var day = from.Date; day.Date <= thru.Date; day = day.AddDays(1))
@@ -263,6 +307,93 @@ namespace CodeWatcher
         {
             for (var min = from; min <= thru; min = min + inc)
                 yield return min;
+        }
+        static readonly Random rnd = new Random();
+        public static DateTime GetRandomDate(DateTime from, DateTime to)
+        {
+            var range = to - from;
+            var randTimeSpan = new TimeSpan((long)(rnd.NextDouble() * range.Ticks));
+            return from + randTimeSpan;
+        }
+
+        internal string GetWorkSummary()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("Work Summary");
+            // each project with stuff, zero or otherwise
+            DateTime? dt0 = GetDateTime(TRB_KIND.MINIMUM, TRB_PART.START, TRB_PART.START, TRB_STATE.ANY);
+            DateTime? dt1 = GetDateTime(TRB_KIND.MAXIMUM, TRB_PART.END, TRB_PART.END, TRB_STATE.ANY);
+            if (dt0 != null && dt1 != null)
+            {
+                string str = null;
+
+                sb.AppendLine("");
+                sb.AppendLine("PROJECTS");
+
+                sb.AppendLine("project, first day, last day, hours, time, edits, path");
+                foreach (var proj in ProjectCollection)
+                {
+                    if (proj.TimeBoxCollection.Count == 0) continue; // did not select it so ignore
+                    str = proj.Name + ", ";
+
+                    if (proj.ActivityTrace == null ||
+                        proj.ActivityTrace.Collection.Count == 0)
+                        str += "NO WORK";
+                    else
+                    {
+                        // total time
+                        // first day worked
+                        // last day worked
+                        str += proj.ActivityTrace.Collection.First().StartDate.Date.ToString("dd/MM/yyyy");
+                        str += ", ";
+                        str += proj.ActivityTrace.Collection.Last().EndDate.Date.ToString("dd/MM/yyyy");
+                        str += ", ";
+                        str += (proj.ActivityTrace.TotalMinutes / 60).ToString("F2");
+                        str += ", ";
+                        str += proj.ActivityTrace.Summary;
+                        str += ", ";
+                        str += proj.ActivityTrace.EditCount.ToString();
+                        str += ", ";
+                        str += ("\"" + proj.Path + "\"");
+                        str += ", ";
+                    }
+                    sb.AppendLine(str);
+                }
+
+                // TOTAL
+                double totalMinutes = ProjectCollection.Sum(proj => proj.ActivityTrace != null ? proj.ActivityTrace.TotalMinutes : 0.0);
+
+                sb.AppendLine("");
+                sb.AppendLine("TOTAL HOURS,  " + (totalMinutes / 60).ToString());
+                sb.AppendLine("TOTAL TIME, " + ActivityTrace.FormatSummary(totalMinutes));
+
+                // dates worked as table
+                sb.AppendLine("");
+                sb.AppendLine("TABLE");
+                sb.AppendLine(((DateTime)dt0).ToString("dd/MM/yyyy") + " to " + ((DateTime)dt1).ToString("dd/MM/yyyy"));
+                str = "";
+                foreach (DateTime dt in FileChangeTable.EachDay((DateTime)dt0, (DateTime)dt1))
+                    str += (dt.ToString("dd/MM/yyyy") + ", ");
+                sb.AppendLine(str);
+
+                foreach (var proj in ProjectCollection)
+                {
+                    if (proj.TimeBoxCollection.Count == 0) continue; // did not select it so ignore
+                    str = proj.Name + ", ";
+
+                    foreach (DateTime dt in FileChangeTable.EachDay((DateTime)dt0, (DateTime)dt1))
+                    {
+                        var pDay = proj.GetDay(dt);
+                        str += ((pDay.Count > 0) ? "TRUE," : "FALSE,");
+                    }
+
+                    sb.AppendLine(str);
+                }
+            }
+
+
+
+            return (sb.ToString());
         }
     }
 }

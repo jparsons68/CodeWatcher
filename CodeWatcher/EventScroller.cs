@@ -66,7 +66,7 @@ namespace CodeWatcher
                 doubleBuffer1.Refresh();
             }
         }
-        public void UpdateAll()
+        public void UpdateAll() 
         {
             doubleBuffer1.Refresh();
         }
@@ -99,10 +99,16 @@ namespace CodeWatcher
             }
         }
 
+        internal ThemeColors Theme { get => _theme; set { _theme = value;
+                this.Invalidate(true); } }
+
+        ThemeColors _theme = new ThemeColors();
+
+        
 
         private void _fcWatcher_Error(object sender, System.IO.ErrorEventArgs e)
         {
-
+            this.Invalidate(true);
         }
 
         private void _fcWatcher_Changed(object sender, DoWorkEventArgs e)
@@ -208,18 +214,19 @@ namespace CodeWatcher
         }
 
         int L_BDR = 10;
-        int R_BDR = 10;
-        int B_BDR = 80;
+        int B_BDR = 40;
 
         private void doubleBuffer1_PaintEvent(object sender, PaintEventArgs e)
         {
+            var g = e.Graphics;
+
+            g.Clear(_theme.Window.Background.Color);
             if (_fcWatcher == null) return;
             if (_fcWatcher.Table == null) return;
             var _table = _fcWatcher.Table;
             if (_table == null) return;
 
-            B_BDR = 40;
-            var g = e.Graphics;
+            
 
             int w = doubleBuffer1.Width - L_BDR;
             int y;
@@ -233,14 +240,14 @@ namespace CodeWatcher
             {
                 if (dt > _t1) continue;
                 y = _dateTimeToPos(dt);
-                g.DrawLine(Pens.Gray, 0, y, doubleBuffer1.Width, y);
-                g.DrawString(dt.ToString(_timeFormat), Font, Brushes.Gray, L_BDR, y - Font.Height);
+                g.DrawLine(_theme.Window.Medium.Pen, 0, y, doubleBuffer1.Width, y);
+                g.DrawString(dt.ToString(_timeFormat), Font, _theme.Window.Medium.Brush, L_BDR, y - Font.Height);
             }
 
 
             Rectangle futureRect = new Rectangle(0, doubleBuffer1.Height - B_BDR, doubleBuffer1.Width, B_BDR);
-            g.FillRectangle(_userTime ? Brushes.RosyBrown : Brushes.Gainsboro, futureRect);
-            Pen pen = new Pen(_userTime ? Color.DarkRed : Color.CadetBlue, 3f);
+            g.FillRectangle(_userTime ? _theme.AccentWindow2.Medium.Brush : _theme.Window.Medium.Brush, futureRect);
+            Pen pen = _userTime ? _theme.AccentWindow2.High.Pen2 : _theme.AccentWindow1.High.Pen2;
             g.DrawLine(pen, 0, futureRect.Top, doubleBuffer1.Width, futureRect.Top);
 
 
@@ -258,8 +265,7 @@ namespace CodeWatcher
                 Rectangle rect = new Rectangle(L_BDR, y, w, FontHeight);
                 g.FillRectangle(fci.Project.Brush, rect);
 
-                var txtBr = Utilities.ColorUtilities.GetContrastBrush(fci.Project.Color);
-                g.DrawString(txt, Font, txtBr, rect.X, rect.Y);
+                g.DrawString(txt, Font, fci.Project.ContrastBrush, rect.X, rect.Y);
             }
         }
 
@@ -295,29 +301,5 @@ namespace CodeWatcher
 
     }
 
-
-    public enum TIMEPERIOD
-    {
-        [Description("1 minute")]
-        ONEMINUTE,
-        [Description("5 minutes")]
-        FIVEMINUTES,
-        [Description("1 hour")]
-        ONEHOUR,
-        [Description("2 hours")]
-        TWOHOURS,
-        [Description("8 hours")]
-        EIGHTHOURS,
-        [Description("1 day")]
-        ONEDAY,
-        [Description("1 week")]
-        ONEWEEK,
-        [Description("1 month")]
-        ONEMONTH,
-        [Description("3 months")]
-        THREEMONTHS,
-        [Description("1 year")]
-        ONEYEAR
-    }
 
 }

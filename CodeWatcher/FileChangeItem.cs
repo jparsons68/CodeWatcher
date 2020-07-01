@@ -20,7 +20,24 @@ namespace CodeWatcher
 
         public string AuxInfo { get; internal set; }
         public FileChangeTable Table { get; internal set; }
+        public bool TimeBoxContained
+        {
+            get
+            {
+                return (Project != null && Project.TimeBoxContains(this.DateTime));
+            }
+        }
 
+        public static FileChangeItem GetFileChangeItem(string str)
+        {
+            var fci = new FileChangeItem(str);
+            return (fci.ProjectPath == null ? null : fci);
+        }
+        public static FileChangeItem GetFileChangeItem(string path, DateTime dt, WatcherChangeTypes changeType)
+        {
+            var fci = new FileChangeItem(path, dt, changeType);
+            return (fci.ProjectPath == null ? null : fci);
+        }
         public FileChangeItem(string str)
         {
             DateTime dt;
@@ -36,8 +53,9 @@ namespace CodeWatcher
                 ct = (WatcherChangeTypes)Enum.Parse(typeof(WatcherChangeTypes), part[4]);
                 if (part.Length > 6) auxInfo = part[6];
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine("File Parse error:" + ex.ToString());
                 path = null;
                 dt = DateTime.MinValue;
                 ct = WatcherChangeTypes.Changed;
@@ -107,7 +125,7 @@ namespace CodeWatcher
         }
 
         static TimeSpan oneSec = new TimeSpan(0, 0, 1);
-        internal static bool EqualPathAndTime(FileChangeItem fci1,FileChangeItem fci2)
+        internal static bool EqualPathAndTime(FileChangeItem fci1, FileChangeItem fci2)
         {
             if (fci1 == null || fci2 == null) return (false);
             return (
