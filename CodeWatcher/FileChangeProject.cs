@@ -257,7 +257,7 @@ namespace CodeWatcher
             var firstDay = DaysCollection.FirstOrDefault();
             if (firstDay == null) return (null);
             int idx = (date - firstDay.DateTime).Days;
-            FileChangeProjectDay pDay = (idx > 0 && idx < DaysCollection.Count) ? DaysCollection[idx] : null;
+            FileChangeProjectDay pDay = (idx >= 0 && idx < DaysCollection.Count) ? DaysCollection[idx] : null;
             return (pDay);
         }
 
