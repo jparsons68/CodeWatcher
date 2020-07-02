@@ -47,6 +47,7 @@
             this.exitToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.editToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.kjjToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.copyWorkSummaryToClipboardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem5 = new System.Windows.Forms.ToolStripMenuItem();
             this.presetTimesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lastWeekToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -86,7 +87,6 @@
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.eventScroller1 = new CodeWatcher.EventScroller();
-            this.copyWorkSummaryToClipboardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.panel1.SuspendLayout();
             this.contextMenuStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
@@ -284,6 +284,14 @@
             this.kjjToolStripMenuItem.Size = new System.Drawing.Size(298, 22);
             this.kjjToolStripMenuItem.Text = "Select All";
             this.kjjToolStripMenuItem.Click += new System.EventHandler(this.selectAllToolStripMenuItem_Click);
+            // 
+            // copyWorkSummaryToClipboardToolStripMenuItem
+            // 
+            this.copyWorkSummaryToClipboardToolStripMenuItem.Name = "copyWorkSummaryToClipboardToolStripMenuItem";
+            this.copyWorkSummaryToClipboardToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
+            this.copyWorkSummaryToClipboardToolStripMenuItem.Size = new System.Drawing.Size(298, 22);
+            this.copyWorkSummaryToClipboardToolStripMenuItem.Text = "Copy Work Summary to Clipboard";
+            this.copyWorkSummaryToClipboardToolStripMenuItem.Click += new System.EventHandler(this.copyWorkSummaryToClipboardToolStripMenuItem_Click);
             // 
             // toolStripMenuItem5
             // 
@@ -652,14 +660,6 @@
             this.eventScroller1.Size = new System.Drawing.Size(394, 635);
             this.eventScroller1.TabIndex = 11;
             this.eventScroller1.TimePeriod = CodeWatcher.TIMEPERIOD.ONEHOUR;
-            // 
-            // copyWorkSummaryToClipboardToolStripMenuItem
-            // 
-            this.copyWorkSummaryToClipboardToolStripMenuItem.Name = "copyWorkSummaryToClipboardToolStripMenuItem";
-            this.copyWorkSummaryToClipboardToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.C)));
-            this.copyWorkSummaryToClipboardToolStripMenuItem.Size = new System.Drawing.Size(298, 22);
-            this.copyWorkSummaryToClipboardToolStripMenuItem.Text = "Copy Work Summary to Clipboard";
-            this.copyWorkSummaryToClipboardToolStripMenuItem.Click += new System.EventHandler(this.copyWorkSummaryToClipboardToolStripMenuItem_Click);
             // 
             // Form1
             // 

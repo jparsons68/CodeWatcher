@@ -214,5 +214,17 @@ namespace CodeWatcher.Properties {
                 this["ShowInfoColumn"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string TimeBoxList {
+            get {
+                return ((string)(this["TimeBoxList"]));
+            }
+            set {
+                this["TimeBoxList"] = value;
+            }
+        }
     }
 }

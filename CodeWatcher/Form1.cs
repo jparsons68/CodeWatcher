@@ -138,6 +138,7 @@ namespace CodeWatcher
             this.Location = Properties.Settings.Default.Location;
             this.Size = Properties.Settings.Default.Size;
             themeController.LoadSettings();
+            themeController.Theme.Impose(this);
             TIMEPERIOD tP = (TIMEPERIOD)Properties.Settings.Default.EsTimePeriod;
             eventScroller1.TimePeriod = tP;
             mainPanel.LoadSettings();
@@ -151,6 +152,7 @@ namespace CodeWatcher
             if (e.CloseReason == CloseReason.UserClosing) e.Cancel = true;
             // to hide from taskbar
             hideToolStripMenuItem_Click(sender, null);
+            _fcWatcher.Write();
         }
 
         private const int WM_SYSCOMMAND = 0x0112;
@@ -176,7 +178,7 @@ namespace CodeWatcher
         private void Form1_Shown(object sender, EventArgs e)
         {
             // hides on startup, no big deal
-
+            themeController.Theme.Impose(this);
 #if DEBUG == false
             this.Hide();
 #endif

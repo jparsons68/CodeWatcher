@@ -173,6 +173,8 @@ namespace CodeWatcher
         Timer timer = null;
         FileChangeTester tester;
         int testRuns;
+
+
         Random randTest = new Random();
         int maxMS;
         internal void StartBackgroundTest(int maximumMSInterval)
@@ -220,6 +222,11 @@ namespace CodeWatcher
         internal void AutoWrite()
         {
             if (Table != null) Table.AutoWrite();
+        }
+
+        internal void Write()
+        {
+            if (Table != null) Table.Write();
         }
     }
 }

@@ -63,22 +63,28 @@ namespace CodeWatcher
             // match project
             foreach (var proj in table.ProjectCollection)
             {
-                if (proj.IsActivityTraced == false) continue;
-                List<ActivityLineBlock> activityLine = new List<ActivityLineBlock>();
-                ActivityLineBlock alBlk = null;
-                foreach (var act in masterList)
+                List<ActivityLineBlock> activityLine = null;
+                if (proj.IsActivityTraced)
                 {
-                    double amt = (act.IsMatch(proj)) ? 1.0 / act.ProjectCount : 0.0;
-                    if (alBlk != null && amt == alBlk.ActivityAmount) continue; // same, no need to add
-                    alBlk = new ActivityLineBlock(act.StartDate, amt);
-                    activityLine.Add(alBlk);
+                    activityLine = new List<ActivityLineBlock>();
+                    ActivityLineBlock alBlk = null;
+                    foreach (var act in masterList)
+                    {
+                        double amt = (act.IsMatch(proj)) ? 1.0 / act.ProjectCount : 0.0;
+                        if (alBlk != null && amt == alBlk.ActivityAmount) continue; // same, no need to add
+                        alBlk = new ActivityLineBlock(act.StartDate, amt);
+                        activityLine.Add(alBlk);
+                    }
+
+                    for (int i = 1; i < activityLine.Count; i++)
+                        activityLine[i - 1].EndDate = activityLine[i].StartDate;
+                    if (activityLine.Count > 0) activityLine.Last().EndDate = proj.TimeBoxCollection.Last().EndDate;
                 }
 
-                for (int i = 1; i < activityLine.Count; i++)
-                    activityLine[i - 1].EndDate = activityLine[i].StartDate;
-                if (activityLine.Count > 0) activityLine.Last().EndDate = proj.TimeBoxCollection.Last().EndDate;
                 proj.ActivityTrace.Add(activityLine);
             }
+
+            table.TotalMinutes = table.ProjectCollection.Sum(proj => proj.ActivityTrace != null ? proj.ActivityTrace.TotalMinutes : 0.0);
         }
     }
 
@@ -191,17 +197,25 @@ namespace CodeWatcher
         internal void Add(List<ActivityLineBlock> activityLine)
         {
             ActivityLine = activityLine;
-            TotalMinutes = ActivityLine.Sum(alb => alb.EffectiveMinutes);
+            TotalMinutes = ActivityLine != null ? ActivityLine.Sum(alb => alb.EffectiveMinutes) : 0;
             Summary = FormatSummary(TotalMinutes);
         }
 
         public static string FormatSummary(double tms)
         {
             int totalMinutes = (int)tms;
-            if (totalMinutes == 0) return (null);
-            int wdays = totalMinutes / 450;// working days
-            int hours = (totalMinutes - wdays * 450) / 60;
-            int mins = totalMinutes - (hours * 60) - (wdays * 450);
+            int wdays, hours, mins;
+            if (totalMinutes > 0)
+            {
+                wdays = totalMinutes / 450;// working days
+                hours = (totalMinutes - wdays * 450) / 60;
+                mins = totalMinutes - (hours * 60) - (wdays * 450);
+            }
+            else
+            {
+                wdays = hours = mins = 0;
+            }
+
             return string.Format("{0:00}:{1:00}:{2:00}", wdays, hours, mins);
         }
 

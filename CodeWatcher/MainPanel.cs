@@ -1,4 +1,5 @@
 ﻿using ChartLib;
+using Syncfusion.Windows.Forms.Tools;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -41,7 +42,8 @@ namespace CodeWatcher
         SELECTING_TIMERANGE,
         APPENDSELECTING_TIMERANGE,
         MOVING_EDGE,
-        CREATE_TIMERANGE
+        CREATE_TIMERANGE,
+        DELETE_TIMERANGE
     }
     class MainPanel
     {
@@ -78,9 +80,23 @@ namespace CodeWatcher
 
         Brush _transBr;
 
-        TextBox tBox;
-
+        //TextBox tBox;
+        StatusStrip statusStrip;
+        StatusStripLabel label1;
+        StatusStripLabel label2;
         public bool _showInfoColumn = true;
+
+
+        Brush zoneREDbr;
+        Brush zoneORANGEbr;
+        Brush zoneYELLOWbr;
+        Brush zoneGREENbr;
+        Brush zoneBLUEbr;
+
+        Brush _getToneBrush(Color c)
+        {
+            return (new SolidBrush(ThemeColors.LimitColor(c)));
+        }
 
         public MainPanel(FileChangeWatcher fcw, DoubleBuffer doubleBuffer, ThemeColors theme)
         {
@@ -88,6 +104,13 @@ namespace CodeWatcher
             _doubleBuffer = doubleBuffer;
             _theme = theme;
             _font = _doubleBuffer.Font;
+
+            zoneREDbr = _getToneBrush(Color.Red);
+            zoneORANGEbr = _getToneBrush(Color.Orange);
+            zoneYELLOWbr = _getToneBrush(Color.Yellow);
+            zoneGREENbr = _getToneBrush(Color.ForestGreen);
+            zoneBLUEbr = _getToneBrush(Color.DeepSkyBlue);
+
             _doubleBuffer.MouseWheel += DoubleBuffer1_MouseWheel;
             _doubleBuffer.MouseClick += _doubleBuffer_MouseClick;
             _doubleBuffer.MouseMove += _doubleBuffer_MouseMove;
@@ -97,10 +120,36 @@ namespace CodeWatcher
             ttC = new TooltipContainer(_doubleBuffer);
             MidnightNotifier.DayChanged += (s, e) => { _doubleBuffer.Invalidate(); };// make sure it ticks over to next day
 
-            tBox = new TextBox();
-            tBox.Dock = DockStyle.Bottom;
-            tBox.ReadOnly = true;
-            doubleBuffer.Parent.Controls.Add(tBox);
+
+            statusStrip = new StatusStrip();
+            statusStrip.Dock = DockStyle.Bottom;
+            StatusStripLabel label0 = new StatusStripLabel();
+            label0.Text = "Position:";
+            label0.Font = new Font(label0.Font, FontStyle.Bold);
+            label1 = new StatusStripLabel();
+            StatusStripLabel label3 = new StatusStripLabel();
+            label3.Text = "Total Work:";
+            label3.Font = new Font(label3.Font, FontStyle.Bold);
+            label2 = new StatusStripLabel();
+            label1.AutoSize = false;
+            label1.Size = new Size(200, label1.Height);
+            label1.TextAlign = ContentAlignment.MiddleLeft;
+            label2.AutoSize = false;
+            label2.Size = new Size(200, label2.Height);
+            label2.TextAlign = ContentAlignment.MiddleLeft;
+
+            statusStrip.Items.Add(label0);
+            statusStrip.Items.Add(label1);
+            statusStrip.Items.Add(label3);
+            statusStrip.Items.Add(label2);
+            doubleBuffer.Parent.Controls.Add(statusStrip);
+
+            //tBox = new TextBox();
+            //tBox.Dock = DockStyle.Bottom;
+            //tBox.ReadOnly = true;
+
+            //doubleBuffer.Parent.Controls.Add(tBox);
+
 
             _rowHeight = _font.Height * 2;
         }
@@ -250,12 +299,6 @@ namespace CodeWatcher
                 if (_toPresent) dt1 = today;
                 dt0 = _calcT0(dt1);
 
-                //g.DrawString(dt0.ToString(), _font, Brushes.Red, 150, 5);
-                //g.DrawString(dt1.ToString(), _font, Brushes.Red, 350, 5);
-                //g.DrawString("TOPRESENT:" + _toPresent, _font, _toPresent ? Brushes.Blue : Brushes.DarkRed, 500, 5);
-                //g.DrawString("DAYS:" + IDaySpan, _font, _toPresent ? Brushes.Blue : Brushes.DarkRed, 600, 5);
-                //g.DrawString("DATAFROM:" + _table.StartTime.Date, _font, Brushes.DarkMagenta, 700, 5);
-
                 INFOCOLUMNWIDTH = 70;
                 int THINBANNERHEIGHT = 4;
                 int fH = _font.Height;
@@ -277,7 +320,6 @@ namespace CodeWatcher
                 Rectangle mainClipRect = new Rectangle((int)leftDemark, 0, width, height);
 
                 // projects with activity in shown time range
-                //List<FileChangeProject> projWithActivity = _table.GetProjectsWithActivity(dt0, dt1);
                 int peakOpsInDay = _table.GetPeakOpsInDay();
 
 
@@ -309,8 +351,10 @@ namespace CodeWatcher
 
                 g.DrawString("Project", _font, fgBr, BORDER, BORDERHEADER - fH);
                 if (_showInfoColumn)
-                    g.DrawString("wd:hr:mn", _font, fgBr, BORDER + BORDER + PROJCOLWIDTH, BORDERHEADER - fH);
-
+                {
+                    g.DrawString("wd:hr:mn", _font, fgBr, BORDER + BORDER + PROJCOLWIDTH, BORDERHEADER - 2 * fH);
+                    g.DrawString("edit count", _font, fgBr, BORDER + BORDER + PROJCOLWIDTH, BORDERHEADER - fH);
+                }
 
 
                 List<float> verts = new List<float>();
@@ -349,6 +393,7 @@ namespace CodeWatcher
                         infoRect.Width = INFOCOLUMNWIDTH;
                         g.FillRectangle(bgLightGrayBr, infoRect);
                         g.DrawString(proj.ActivityTrace.Summary, _font, fgBr, infoRect.X + BORDER, py);
+                        g.DrawString(proj.ActivityTrace.EditCount.ToString(), _font, fgBr, infoRect.X + BORDER, py + fH);
                     }
 
 
@@ -427,11 +472,11 @@ namespace CodeWatcher
                             //  int bH = (int)(boxH * activity);
                             //     if (bH < MINBOXH) bH = MINBOXH; 
                             Rectangle rect = new Rectangle((int)fx, y + _rowHeight - bH, boxW, bH);
-                            if (activity > REDZONE) br = Brushes.Red;
-                            else if (activity > ORANGEZONE) br = Brushes.Orange;
-                            else if (activity > YELLOWZONE) br = Brushes.Gold;
-                            else if (activity > GREENZONE) br = Brushes.ForestGreen;
-                            else br = Brushes.CadetBlue;
+                            if (activity > REDZONE) br = zoneREDbr;
+                            else if (activity > ORANGEZONE) br = zoneORANGEbr;
+                            else if (activity > YELLOWZONE) br = zoneYELLOWbr;
+                            else if (activity > GREENZONE) br = zoneGREENbr;
+                            else br = zoneBLUEbr;
 
                             g.FillRectangle(br, rect);
                         }
@@ -460,15 +505,19 @@ namespace CodeWatcher
                         innerRect.Height = showFullBanner ? fH : THINBANNERHEIGHT; //        Math.Min(fH, _rowHeight / 2);
                         g.FillRectangle(trb.WholeState.HasFlag(TRB_STATE.SELECTED) ? hiliteBr : titleBr, innerRect);
                         if (showFullBanner)
-                            g.DrawString(trb.StartDate.ToString("dd/MM/yyyy") + " " + trb.TimeSpan.TotalDays.ToString("f0") + " days",
+                        {
+                            var gc = g.BeginContainer();
+                            g.SetClip(innerRect);
+                            g.DrawString(trb.StartDate.ToString("dd/MM/yyyy") + " : " + trb.TimeSpan.TotalDays.ToString("f0") + " days",
                                 _font, trb.WholeState.HasFlag(TRB_STATE.SELECTED) ? hiliteTxtBr : titleTxtBr,
-                                trbRect.X + 2, trbRect.Y);
-
+                                trbRect.X, trbRect.Y);
+                            g.EndContainer(gc);
+                        }
                         ttC.Add(_toCode(TRB_PART.WHOLE), trbRect, null, trb);
 
 
                         // EDGES
-                        // g.DrawString(trb.StartDate.ToString(), _font, Brushes.OrangeRed, trbRect.X + 2, trbRect.Y);
+                        //g.DrawString(trb.StartDate.ToString(), _font, Brushes.OrangeRed, trbRect.X + 2, trbRect.Y);
                         //g.DrawString(trb.EndDate.ToString(), _font, Brushes.OrangeRed, trbRect.Right, trbRect.Y + fH);
 
                         int cX = (trbRect.Left + trbRect.Right) / 2;
@@ -502,7 +551,7 @@ namespace CodeWatcher
 
 
                     // ACTIVITY TRACE
-                    if (boxSpace > fH && 
+                    if (boxSpace > fH &&
                         proj.ActivityTrace != null && proj.ActivityTrace.ActivityLine != null)
                         foreach (var aLine in proj.ActivityTrace.ActivityLine)
                         {
@@ -516,14 +565,20 @@ namespace CodeWatcher
                             g.FillRectangle(_theme.Window.Bright.Brush, sx0, y + _rowHeight - traceH, aW, traceH);
                         }
 
-                    //string work = proj.GetSelectedWorkSummary();
-                    //if (work != null) g.DrawString(work, _font, fgBr, leftDemark, y);
 
                     g.ResetClip();
                     y += _rowHeight;
                 }
 
-                g.DrawString(_table.WorkSummary, _font, fgBr, 400, 100);
+
+                //if (_table.TotalMinutes > 0)
+                //{
+                //    int tmpY = _doubleBuffer.Height - fH;
+                //    g.FillRectangle(bgBr, 0, tmpY, 200, fH);
+                //    g.DrawString("Total work time:" + _table.ActivitySummary, _font, fgBr, 0, tmpY);
+                //}
+
+                label2.Text = _table.ActivitySummary;
 
                 // horiz
                 g.DrawLine(_theme.Window.Medium.Pen, 0, BORDERHEADER, width, BORDERHEADER);
@@ -538,14 +593,18 @@ namespace CodeWatcher
 
 
                 if (_action == MP_ACTION.SELECTING_TIMERANGE ||
-                    _action == MP_ACTION.APPENDSELECTING_TIMERANGE)
+                    _action == MP_ACTION.APPENDSELECTING_TIMERANGE ||
+                    _action == MP_ACTION.DELETE_TIMERANGE)
                 {
                     int bx = Math.Min(box0.X, box1.X);
                     int by = Math.Min(box0.Y, box1.Y);
                     int bw = Math.Abs(box0.X - box1.X);
                     int bh = Math.Abs(box0.Y - box1.Y);
                     Rectangle rect = new Rectangle(bx, by, bw, bh);
-                    g.DrawRectangle(_theme.Highlight.High.Pen2, rect);
+
+                    g.DrawRectangle(_action == MP_ACTION.DELETE_TIMERANGE? 
+                        Pens.Red:
+                        _theme.Highlight.High.Pen2, rect);
                 }
 
 
@@ -730,6 +789,12 @@ namespace CodeWatcher
                 _selectWithBox(true);
                 _doubleBuffer.Refresh();
             }
+            else if (ChartViewer.IsModifierHeld(Keys.Alt))
+            {
+                _action = MP_ACTION.DELETE_TIMERANGE;
+                _initBox(e.Location);
+                _doubleBuffer.Refresh();
+            }
             else
             {
                 // grab edge?
@@ -776,13 +841,16 @@ namespace CodeWatcher
             if (_fcWatcher == null) return;
 
             DateTime mDT0 = _dateTimeAtPtr(e.X);
-            tBox.Text = mDT0.ToString();
+            label1.Text = mDT0.ToString();
 
             _updateBox(e.Location);
 
             switch (_action)
             {
                 case MP_ACTION.NONE:
+                    break;
+                case MP_ACTION.DELETE_TIMERANGE:
+                    _doubleBuffer.Refresh();
                     break;
                 case MP_ACTION.CREATE_TIMERANGE:
                     _restoreTimeBoxes();
@@ -815,6 +883,11 @@ namespace CodeWatcher
             switch (_action)
             {
                 case MP_ACTION.NONE:
+                    break;
+                case MP_ACTION.DELETE_TIMERANGE:
+                    _selectWithBox(false);
+                    _fcWatcher.Table.TimeBoxDelete(TRB_PART.WHOLE, TRB_STATE.SELECTED);
+                    refresh = true;
                     break;
                 case MP_ACTION.CREATE_TIMERANGE:
                     ActivityTraceBuilder.Build(_fcWatcher.Table);

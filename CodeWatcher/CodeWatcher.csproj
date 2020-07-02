@@ -116,6 +116,7 @@
     <Compile Include="FileChangeItem.cs" />
     <Compile Include="FileChangeProject.cs" />
     <Compile Include="FileChangeProjectDay.cs" />
+    <Compile Include="FileChangeTable1.cs" />
     <Compile Include="FileChangeTester.cs" />
     <Compile Include="FileChangeTable.cs" />
     <Compile Include="FileChangeWatcher.cs" />

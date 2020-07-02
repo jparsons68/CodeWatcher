@@ -28,12 +28,15 @@ namespace CodeWatcher
                     _clearItemCollection();
                     _readFromFileToItemCollection(_logPath);
                     _sortAndSanitize();
-                    _setTimeRange();
+                    _setTimeExtents();
                     _organizeIntoProjects();
+                    _applySavedProjectSettings();
                     ActivityTraceBuilder.Build(this);
                 }
             }
         }
+
+
 
         public int DayCount
         {
@@ -64,27 +67,6 @@ namespace CodeWatcher
             }
         }
 
-        private void _readFromFileToItemCollection(string path)
-        {
-            int counter = 0;
-            string line;
-            try
-            {
-                using (StreamReader file = new StreamReader(path))
-                {
-                    while ((line = file.ReadLine()) != null)
-                    {
-                        FileChangeItem fci = FileChangeItem.GetFileChangeItem(line);
-                        _add(fci);
-                        counter++;
-                    }
-                }
-            }
-            catch
-            {
-
-            }
-        }
 
         static WatcherChangeTypes[] _priorityOrder = new WatcherChangeTypes[] {
             WatcherChangeTypes.Deleted,
@@ -182,12 +164,12 @@ namespace CodeWatcher
             }
         }
 
-        public int TotalMinutesSelected { get; private set; }
-        public string WorkSummary { get; private set; }
+        public string ActivitySummary { get { return (ActivityTrace.FormatSummary(TotalMinutes)); } }
+        public double TotalMinutes { get; internal set; }
 
-        private void _setTimeRange()
+        private void _setTimeExtents()
         {
-            // actual time range
+            // actual time extents
             if (ItemCollection.Count > 0)
             {
                 StartTime = ItemCollection.First().DateTime;
@@ -199,6 +181,7 @@ namespace CodeWatcher
                 EndTime = DateTime.MinValue;
             }
         }
+
         private void _organizeIntoProjects()
         {
             // get projects listing 
@@ -237,13 +220,22 @@ namespace CodeWatcher
                 return (false);
             _add(fci);
             _sortAndSanitize();
-            _setTimeRange();
+            _setTimeExtents();
             _organizeIntoProjects();
             ActivityTraceBuilder.Build(this);
             return (true);
         }
 
-        static internal bool Write(List<FileChangeItem> collection, string path)
+
+        private bool Write(FileChangeTable table, string path)
+        {
+            return (Write(table.ProjectCollection, table.ItemCollection, path));
+        }
+
+        static string _PROJECT_HEADER = "PROJECTS";
+        static string _PROJECT_ENDER = "PROJECTS END";
+        static internal bool Write(List<FileChangeProject> projectCollection,
+                                   List<FileChangeItem> itemCollection, string path)
         {
             if (path == null) return (false);
 
@@ -251,8 +243,15 @@ namespace CodeWatcher
             {
                 using (StreamWriter file = new StreamWriter(path, false))
                 {
-                    foreach (var fci in collection)
-                        file.WriteLine(fci.ToString());
+                    file.WriteLine(_PROJECT_HEADER);
+                    if (projectCollection != null)
+                        foreach (var proj in projectCollection)
+                            file.WriteLine(proj.GetSetting());
+                    file.WriteLine(_PROJECT_ENDER);
+
+                    if (itemCollection != null)
+                        foreach (var fci in itemCollection)
+                            file.WriteLine(fci.ToString());
                 }
                 return (true);
             }
@@ -267,7 +266,58 @@ namespace CodeWatcher
         {
             if (LogPath == null) return (false);
             _dirtyList = false;
-            return (Write(ItemCollection, LogPath));
+            return (Write(this, LogPath));
+        }
+
+
+        List<string> _savedProjectSettings = null;
+
+        private void _applySavedProjectSettings()
+        {
+            if (_savedProjectSettings == null) return;
+
+            foreach (var proj in ProjectCollection)
+                proj.ExtractAndApplySetting(_savedProjectSettings);
+
+            _savedProjectSettings = null; /// done!
+        }
+
+        private void _readFromFileToItemCollection(string path)
+        {
+            int counter = 0;
+            string line;
+            try
+            {
+                _savedProjectSettings = null;
+
+                using (StreamReader file = new StreamReader(path))
+                {
+                    bool projectRead = false;
+                    bool itemRead = true;
+                    while ((line = file.ReadLine()) != null)
+                    {
+                        counter++;
+
+                        if (line == _PROJECT_HEADER) { projectRead = true; itemRead = false; continue; }
+                        if (line == _PROJECT_ENDER) { projectRead = false; itemRead = true; continue; }
+
+                        if (projectRead)
+                        {
+                            if (_savedProjectSettings==null) _savedProjectSettings = new List<string>();
+                            _savedProjectSettings.Add(line);// deal with these after project organize
+                        }
+                        else if (itemRead)
+                        {
+                            FileChangeItem fci = FileChangeItem.GetFileChangeItem(line);
+                            _add(fci);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+
+            }
         }
 
         public static DateTime Round(DateTime date, TimeSpan span)
@@ -361,11 +411,9 @@ namespace CodeWatcher
                 }
 
                 // TOTAL
-                double totalMinutes = ProjectCollection.Sum(proj => proj.ActivityTrace != null ? proj.ActivityTrace.TotalMinutes : 0.0);
-
                 sb.AppendLine("");
-                sb.AppendLine("TOTAL HOURS,  " + (totalMinutes / 60).ToString());
-                sb.AppendLine("TOTAL TIME, " + ActivityTrace.FormatSummary(totalMinutes));
+                sb.AppendLine("TOTAL HOURS,  " + (TotalMinutes / 60).ToString());
+                sb.AppendLine("TOTAL TIME, " + ActivityTrace.FormatSummary(TotalMinutes));
 
                 // dates worked as table
                 sb.AppendLine("");

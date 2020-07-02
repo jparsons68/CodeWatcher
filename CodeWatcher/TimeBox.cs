@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace CodeWatcher
 {
@@ -257,6 +258,41 @@ namespace CodeWatcher
             return (tmp);
         }
 
+        internal string GetSetting()
+        {
+            // start, end, states
+            string str = _serialize(StartDate) + " " + _serialize(EndDate) + " " + StartState + " " + EndState + " " + WholeState;
+            return (str);
+        }
+
+        internal static TimeBox FromSetting(string txt)
+        {
+            try
+            {
+                var part = txt.Split(" ".ToCharArray(), StringSplitOptions.None);
+
+                DateTime dt0 = _deserialize(part[0]);
+                DateTime dt1 = _deserialize(part[1]);
+                TRB_STATE startState = (TRB_STATE)Enum.Parse(typeof(TRB_STATE), part[2]);
+                TRB_STATE endState = (TRB_STATE)Enum.Parse(typeof(TRB_STATE), part[3]);
+                TRB_STATE wholeState = (TRB_STATE)Enum.Parse(typeof(TRB_STATE), part[4]);
+
+                TimeBox tbox = new TimeBox(dt0, dt1);
+                tbox.StartState = startState;
+                tbox.EndState = endState;
+                tbox.WholeState = wholeState;
+                return (tbox);
+            }
+            catch
+            {
+
+            }
+            return (null);
+        }
+        private const string DateTimeOffsetFormatString = "yyyy-MM-ddTHH:mm:sszzz";
+
+        static string _serialize(DateTime dt) { return (dt.ToString(DateTimeOffsetFormatString)); }
+        static DateTime _deserialize(string str) { return (DateTime.Parse(str)); }
 
 
         public TRB_STATE StartState { get; set; }

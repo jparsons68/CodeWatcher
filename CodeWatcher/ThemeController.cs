@@ -68,7 +68,7 @@ namespace CodeWatcher
         void setTheme(Color bg, Color acc1, Color acc2, Color hl)
         {
             if (bg.R == 0) SetDarkTheme(acc1, acc2, hl);
-            SetLightTheme(acc1, acc2, hl);
+            else SetLightTheme(acc1, acc2, hl);
         }
 
 

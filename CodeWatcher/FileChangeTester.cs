@@ -56,7 +56,7 @@ namespace CodeWatcher
             }
             collection = FileChangeTable.SortAndSanitize(collection);
 
-            FileChangeTable.Write(collection, path);
+            FileChangeTable.Write(null, collection, path);
 
             return (true);
         }
