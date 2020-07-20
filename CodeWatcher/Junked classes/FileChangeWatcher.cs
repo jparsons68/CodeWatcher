@@ -67,9 +67,9 @@ namespace CodeWatcher
             _userAct = new UserActivity();
             _userAct.UserIdleEvent += UserAct_UserIdleEvent;
             UserIdleMinutes = 5;
-            //#if DEBUG == true
-            //           UserIdleMinutes = 0.2;
-            //#endif
+//#if DEBUG == true
+ //           UserIdleMinutes = 0.2;
+//#endif
 
             SystemEvents.PowerModeChanged += OnPowerChange;
         }
@@ -107,10 +107,10 @@ namespace CodeWatcher
 
         public SortBy SortProjectsBy
         {
-            get { return (Table != null ? Table.SortProjectsBy : SortBy.Alphabetical); }
+            get { return (Table.SortProjectsBy); }
             set
             {
-                if (Table != null) Table.SortProjectsBy = value;
+                Table.SortProjectsBy = value;
                 SortProjectsByChanged?.Invoke(this, new EventArgs());
             }
         }

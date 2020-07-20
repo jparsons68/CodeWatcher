@@ -50,6 +50,7 @@ namespace CodeWatcher
                 Console.WriteLine();
             }
 
+            TimeBox.TestSubtract();
 #endif
 
             notifyIcon1.BalloonTipClosed += (sender, e) =>
@@ -229,7 +230,6 @@ namespace CodeWatcher
             _loadingSettings = false;
 
             startCollectionToolStripMenuItem_Click(this, null);
-
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -376,7 +376,6 @@ namespace CodeWatcher
         {
             if (_fcWatcher != null)
             {
-               
                 _fcWatcher.LogPath = fileFieldAndBrowserLOG.FileName;
                 _fcWatcher.WatchPath = fileFieldAndBrowserWATCH.FileName;
                 _fcWatcher.Start();
@@ -449,12 +448,10 @@ namespace CodeWatcher
 
         private void fileFieldAndBrowserWATCH_Changed(object sender, EventArgs e)
         {
-            if (_loadingSettings) return;
             restartCollectionToolStripMenuItem_Click(sender, e);
         }
         private void fileFieldAndBrowserLOG_Changed(object sender, EventArgs e)
         {
-            if (_loadingSettings) return;
             restartCollectionToolStripMenuItem_Click(sender, e);
         }
 
@@ -498,7 +495,16 @@ namespace CodeWatcher
             projectListForm.Show(this);
         }
 
+        private void deleteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            mainPanel.TimeBoxDeleteSelected();
+        }
 
+
+        private void selectAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            mainPanel.TimeBoxSelectAll();
+        }
 
         private void copyWorkSummaryToClipboardToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -507,7 +513,7 @@ namespace CodeWatcher
 
         private void clearEditsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.RemoveTimeSelectionEdits();
+            mainPanel.TimeBoxClearEdits();
         }
 
         private void timeBoxToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
@@ -521,11 +527,14 @@ namespace CodeWatcher
         private void contextMenuStrip1_Opening(object sender, CancelEventArgs e)
         {
             // over the project listing or main area
-            //bool pcArea = mainPanel.AnyAreasPointedAt(MainArea.PROJECT_COLUMN);
+            //MainArea areaFlags = mainPanel.GetAreasPointedAt();
+            bool pcArea = mainPanel.AnyAreasPointedAt(MainArea.PROJECT_COLUMN);
+            bool selectedTB = _fcWatcher.Table.HasState(TRB_PART.WHOLE, TRB_STATE.SELECTED);
             bool projectsSelected = _fcWatcher.Table.CountProjects(DataState.True, DataState.True) > 0;
 
             // main menus
-            clearEditsInSelectedTimeBoxesToolStripMenuItem.Enabled = _fcWatcher.Table.SelectionState;
+            clearEditsInSelectedTimeBoxesToolStripMenuItem.Enabled = selectedTB;
+            timeBoxDelSelected.Enabled = selectedTB;
             projectColorToolStripMenuItem.Enabled = projectsSelected;
             projectRandomColorToolStripMenuItem.Enabled = projectsSelected;
             projectSameRandomColorToolStripMenuItem.Enabled = projectsSelected;
@@ -534,6 +543,14 @@ namespace CodeWatcher
             colorToolStripMenuItem.Enabled = projectsSelected;
             randomColorToolStripMenuItem.Enabled = projectsSelected;
             sameRandomColorToolStripMenuItem.Enabled = projectsSelected;
+            deleteToolStripMenuItem.Enabled = selectedTB;
+
+            projectListToolStripMenuItem1.Visible = pcArea;
+            colorToolStripMenuItem.Visible = pcArea;
+            randomColorToolStripMenuItem.Visible = pcArea;
+            sameRandomColorToolStripMenuItem.Visible = pcArea;
+            deleteToolStripMenuItem.Visible = !pcArea;
+
         }
 
         private void showInfoColumnToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
@@ -587,8 +604,19 @@ namespace CodeWatcher
 
         private void clearTimeSelectionToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            _fcWatcher.Table.ClearTimeSelection();
+            _fcWatcher.Table.SelectionState = false;
             doubleBuffer1.Refresh();
+        }
+
+        private void doubleBuffer1_KeyDown(object sender, KeyEventArgs e)
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Escape:
+                    _fcWatcher.Table.SelectionState = false;
+                    doubleBuffer1.Refresh();
+                    break;
+            }
         }
 
 
@@ -596,7 +624,7 @@ namespace CodeWatcher
         {
             if (Form.ModifierKeys == Keys.None && keyData == Keys.Escape)
             {
-                _fcWatcher.Table.ClearTimeSelection();
+                _fcWatcher.Table.SelectionState = false;
                 doubleBuffer1.Refresh();
                 return true;
             }

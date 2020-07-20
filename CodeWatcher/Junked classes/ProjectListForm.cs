@@ -112,7 +112,6 @@ namespace CodeWatcher
             else
                 _localProjList[e.Index].Visible = false;
 
-            _fcWatcher.UpdateActivity();
             _fcWatcher.FireEvent();
         }
     }

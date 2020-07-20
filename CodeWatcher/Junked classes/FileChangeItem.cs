@@ -85,7 +85,7 @@ namespace CodeWatcher
 
         public string AuxInfo { get; internal set; }
         public FileChangeTable Table { get; internal set; }
-        public bool IsInSelectedRange
+        public bool TimeBoxContained
         {
             get
             {

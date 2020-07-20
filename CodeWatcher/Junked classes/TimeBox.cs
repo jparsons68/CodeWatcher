@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Globalization;
 
 namespace CodeWatcher
 {
@@ -29,22 +29,22 @@ namespace CodeWatcher
         }
         public override string ToString()
         {
-            return StartDate.ToString() + " - " + EndDate.ToString();
+            return StartDate.ToString(CultureInfo.InvariantCulture) + " - " + EndDate.ToString(CultureInfo.InvariantCulture);
         }
         static void Test()
         {
             TimeBox trA = new TimeBox(new DateTime(2001, 4, 18), new DateTime(2002, 7, 17));
             TimeBox trB = new TimeBox(new DateTime(2002, 7, 17), new DateTime(2002, 8, 17));
             // 1 day overlap expected
-            bool state = trA.IntersectExclusive(trB);
+            trA.IntersectExclusive(trB);
 
             trB = new TimeBox(new DateTime(2002, 7, 18), new DateTime(2002, 8, 17));
             // no overlap
-            state = trA.IntersectExclusive(trB);
+            trA.IntersectExclusive(trB);
 
             trB = new TimeBox(new DateTime(2001, 4, 18), new DateTime(2001, 4, 18));// one day period
             // no overlap
-            state = trA.IntersectExclusive(trB);
+            trA.IntersectExclusive(trB);
 
         }
 
@@ -67,8 +67,8 @@ namespace CodeWatcher
                 if (remainingTRBs.Count == 0) Console.WriteLine("  Nothing");
                 remainingTRBs.ForEach(trb => Console.WriteLine("  " + trb.ToString()));
             }
-
-
+                   
+                 
             {
                 TimeBox tbFromBox = new TimeBox(new DateTime(2020, 6, 13, 0, 0, 0), new DateTime(2020, 6, 17, 0, 0, 0));
                 Console.WriteLine("BOX:" + tbFromBox.ToString());
@@ -285,8 +285,9 @@ namespace CodeWatcher
             }
             catch
             {
-
+                // ignored
             }
+
             return (null);
         }
         private const string DateTimeOffsetFormatString = "yyyy-MM-ddTHH:mm:sszzz";
@@ -493,10 +494,10 @@ namespace CodeWatcher
             _storeEndDateTime = _endDateTime;
         }
 
-        internal void ShiftDateTime(TRB_PART part, TimeSpan spanDT)
+        internal void ShiftDateTime(TRB_PART part, TimeSpan spanDt)
         {
-            if (part.HasFlag(TRB_PART.START)) _startDateTime = _storeStartDateTime + spanDT;
-            if (part.HasFlag(TRB_PART.END)) _endDateTime = _storeEndDateTime + spanDT;
+            if (part.HasFlag(TRB_PART.START)) _startDateTime = _storeStartDateTime + spanDt;
+            if (part.HasFlag(TRB_PART.END)) _endDateTime = _storeEndDateTime + spanDt;
         }
 
         internal TimeBox Duplicate()
@@ -505,6 +506,17 @@ namespace CodeWatcher
             trb.CopyStates(this);
             trb.UID = this.UID;
             return (trb);
+        }
+
+        public void ClearContainedEdits()
+        {
+            this.Project.Collection.RemoveAll(fci =>
+            {
+                bool contains = Contains(fci.DateTime);
+                if (contains) //also remove from big list
+                    this.Project.Table.ItemCollection.Remove(fci);
+                return (contains);
+            });
         }
     }
 

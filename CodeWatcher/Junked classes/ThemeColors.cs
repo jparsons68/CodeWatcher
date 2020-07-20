@@ -122,7 +122,7 @@ namespace CodeWatcher
         { get { if (_vtransPen == null) _vtransPen = new Pen(Color.FromArgb(30, Window.Foreground.Color)); return (_vtransPen); } }
         internal void Impose(Form form1)
         {
-      //      FindAndRecolorControls(form1);
+            FindAndRecolorControls(form1);
         }
 
 

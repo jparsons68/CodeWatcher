@@ -217,13 +217,73 @@ namespace CodeWatcher.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string TimeBoxList {
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowPaths {
             get {
-                return ((string)(this["TimeBoxList"]));
+                return ((bool)(this["ShowPaths"]));
             }
             set {
-                this["TimeBoxList"] = value;
+                this["ShowPaths"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowTools {
+            get {
+                return ((bool)(this["ShowTools"]));
+            }
+            set {
+                this["ShowTools"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("15")]
+        public double UserIdleMinutes {
+            get {
+                return ((double)(this["UserIdleMinutes"]));
+            }
+            set {
+                this["UserIdleMinutes"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("60")]
+        public double PerEditMinutes {
+            get {
+                return ((double)(this["PerEditMinutes"]));
+            }
+            set {
+                this["PerEditMinutes"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool ShowIdleLine {
+            get {
+                return ((bool)(this["ShowIdleLine"]));
+            }
+            set {
+                this["ShowIdleLine"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UseIdleEvents {
+            get {
+                return ((bool)(this["UseIdleEvents"]));
+            }
+            set {
+                this["UseIdleEvents"] = value;
             }
         }
     }
