@@ -24,8 +24,6 @@ namespace CodeWatcher
             // accent2, gray1, gray2, pale1, pale2
 
             // make sure base colors dont exceed 80% lum and 80% 
-            //windowFG = LimitColor(windowFG);
-            //controlFG = LimitColor(controlFG);
             accent1 = LimitColor(accent1);
             accent2 = LimitColor(accent2);
 
@@ -153,13 +151,12 @@ namespace CodeWatcher
                     tbWl.TextBoxWithLabelControl.Label.ForeColor = Window.Foreground.Color;
                     tbWl.TextBoxWithLabelControl.BackColor = Window.Background.Color;
                     tbWl.TextBoxWithLabelControl.ForeColor = Window.Foreground.Color;
-                    //tbWl.TextBox.BackColor = Window.Background.Color;
-                    //tbWl.TextBox.ForeColor = Window.Foreground.Color;
                 }
                 if (tsmi != null) FindAndRecolorControls(tsmi.DropDownItems, lvl + 1);
             }
         }
-        void FindAndRecolorControls(Control control)
+
+        private void FindAndRecolorControls(Control control)
         {
 
             foreach (Control cc in control.Controls)

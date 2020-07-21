@@ -7,12 +7,12 @@ namespace CodeWatcher
 {
     public class FileChangeTester
     {
-        Random rand = new Random();
-        List<string> files = new List<string>();
+        readonly Random _rand = new Random();
+        readonly List<string> _files;
 
         public FileChangeTester(string rootPath)
         {
-            files = new List<string>();
+            _files = new List<string>();
             AddPath(rootPath);
         }
 
@@ -21,21 +21,23 @@ namespace CodeWatcher
             try
             {
                 var tmp = Directory.GetFiles(rootPath, "*.cs", SearchOption.AllDirectories).Where(fl => (!fl.Contains(@"\obj\") && !fl.Contains(@"\bin\"))).ToList();
-                if (tmp.Count > 0) files.AddRange(tmp);
+                if (tmp.Count > 0) _files.AddRange(tmp);
             }
             catch
-            { }
+            {
+                // ignored
+            }
         }
         public ActivityItem GetFileChangeTestItem(DateTime dt)
         {
-            if (files.Count == 0) return (null);
+            if (_files.Count == 0) return (null);
             // given number of events to generate
             // randomly get a matching file
             int ic = 1000;
             while (ic >= 0)
             {
                 ic--;
-                string path = files[rand.Next(files.Count)];
+                string path = _files[_rand.Next(_files.Count)];
                 ActivityItem fci = ActivityItem.GetFileChangeItem(path, dt, _randomChange());
                 if (fci != null) return (fci);
             }
@@ -44,7 +46,7 @@ namespace CodeWatcher
 
         public bool GenerateTestLog(string path, int length, DateTime from, DateTime to)
         {
-            if (files.Count == 0) return (false);
+            if (_files.Count == 0) return (false);
 
             List<ActivityItem> collection = new List<ActivityItem>();
             for (int i = 0; i < length; i++)
@@ -56,7 +58,7 @@ namespace CodeWatcher
             }
             collection = FileChangeTable.SortAndSanitize(collection);
 
-            FileChangeTable.Write(null, collection, SortBy.Alphabetical, null, null, path);
+            FileChangeTable.Write(null, collection, SortBy.ALPHABETICAL, null, null, path);
 
             return (true);
         }
@@ -65,8 +67,8 @@ namespace CodeWatcher
             Array values = Enum.GetValues(typeof(ActionTypes));
             while (true)
             {
-                ActionTypes randomBar = (ActionTypes)values.GetValue(rand.Next(values.Length));
-                if (randomBar.HasAny(ActionTypes.Suspend |ActionTypes.Resume |ActionTypes.Deleted)) continue;
+                ActionTypes randomBar = (ActionTypes)values.GetValue(_rand.Next(values.Length));
+                if (randomBar.HasAny(ActionTypes.SUSPEND |ActionTypes.RESUME |ActionTypes.DELETED)) continue;
                 return (randomBar);
             }
         }

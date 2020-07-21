@@ -67,7 +67,7 @@ namespace CodeWatcher
             }
         }
 
-        static public ColorRotator ColorRotator = new ColorRotator();
+        public static ColorRotator ColorRotator = new ColorRotator();
         private void _initColors()
         {
             if (_brush == null)
@@ -91,7 +91,7 @@ namespace CodeWatcher
             _rebrush();
         }
 
-        public string Name { get { return System.IO.Path.GetFileName(Path); } }
+        public string Name => System.IO.Path.GetFileName(Path);
         public string Path { get; set; }
         public FileChangeTable Table { get; }
         public List<ActivityItem> Collection { get; set; } = new List<ActivityItem>();
@@ -165,7 +165,6 @@ namespace CodeWatcher
                 bool found = false;
                 bool viz = true;
                 Color? color = null;
-                string txtCol = null;
                 foreach (var line in savedProjectSettings)
                 {
                     if (!found)
@@ -180,7 +179,7 @@ namespace CodeWatcher
                         string txt = FileChangeTable.Extract(line, "VISIBLE:");
                         if (txt != null) viz = bool.Parse(txt);
 
-                        txtCol = FileChangeTable.Extract(line, "COLOR:");
+                        var txtCol = FileChangeTable.Extract(line, "COLOR:");
                         if (txtCol != null) color = ColorTranslator.FromHtml(txtCol);
                     }
 

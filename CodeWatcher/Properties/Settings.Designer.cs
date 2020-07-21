@@ -206,18 +206,6 @@ namespace CodeWatcher.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool ShowInfoColumn {
-            get {
-                return ((bool)(this["ShowInfoColumn"]));
-            }
-            set {
-                this["ShowInfoColumn"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool ShowPaths {
             get {
                 return ((bool)(this["ShowPaths"]));
@@ -284,6 +272,42 @@ namespace CodeWatcher.Properties {
             }
             set {
                 this["UseIdleEvents"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool ShowVerticalCursor {
+            get {
+                return ((bool)(this["ShowVerticalCursor"]));
+            }
+            set {
+                this["ShowVerticalCursor"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CompensatedScaling {
+            get {
+                return ((bool)(this["CompensatedScaling"]));
+            }
+            set {
+                this["CompensatedScaling"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("NAME")]
+        public global::CodeWatcher.EditSort EditSort {
+            get {
+                return ((global::CodeWatcher.EditSort)(this["EditSort"]));
+            }
+            set {
+                this["EditSort"] = value;
             }
         }
     }

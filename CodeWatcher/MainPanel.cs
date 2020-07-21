@@ -1,5 +1,6 @@
 ﻿using ChartLib;
 using ClipperLib;
+using QSGeometry;
 using Syncfusion.Windows.Forms.Tools;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Utilities;
 using Path = System.Collections.Generic.List<ClipperLib.IntPoint>;
 using Paths = System.Collections.Generic.List<System.Collections.Generic.List<ClipperLib.IntPoint>>;
 
@@ -64,9 +66,11 @@ namespace CodeWatcher
     class MainPanel
     {
         readonly FileChangeWatcher _fcWatcher;
-        DoubleBuffer _doubleBuffer;
+        readonly DoubleBuffer _doubleBuffer;
         readonly ThemeColors _theme;
         readonly Font _font;
+        readonly Font _smallfont;
+        readonly Font _fixedWidthFont;
         readonly TooltipContainer _ttC;
         bool _toPresent = true;
         DateTime _dt0;
@@ -74,58 +78,49 @@ namespace CodeWatcher
         int _iDaySpan = 30;
         double _dDaySpan = 30;
         int _rowHeight;
+        private int _defaultRowHeight { get { return _font.Height * 2; } }
+        private int _minRowHeight { get { return _font.Height; } }
+        private int _maxRowHeight { get { return _doubleBuffer.Height - TOPHEADINGHEIGHT; } }
+        private int _fitRowHeight
+        {
+            get
+            {
+                return (_doubleBuffer.Height - TOPHEADINGHEIGHT) /
+                       _fcWatcher.Table.CountProjects(DataState.True, DataState.Ignore);
+            }
+        }
         int _jOffset, _maxJOffset = 10;
         int _scrollDays;
-        private Point[] ptsLeftTri = new Point[] { new Point(0, 0), new Point(0, -10), new Point(10, -10), };
-        private Point[] ptsRightTri = new Point[] { new Point(0, 0), new Point(0, -10), new Point(-10, -10), };
+        private readonly Point[] ptsLeftTri = new[] { new Point(0, 0), new Point(0, -10), new Point(10, -10), };
+        private readonly Point[] ptsRightTri = new[] { new Point(0, 0), new Point(0, -10), new Point(-10, -10), };
         const int BORDER = 10;
-        const int TOPHEADINGHEIGHT = 60;
-        const int PROJCOLWIDTH = 100;
-        const int INFOCOLUMNWIDTH = 70;
+        const int TOPHEADINGHEIGHT = 75;
+        const int PROJCOLWIDTH = 150;
+        const int TICKH = 8;
         const int MINBOXW = 2;
-        const int MINGAPPEDBOXSPACE = 7;
-        const int TINYSPACE = 2;
         const int FUTCOLWIDTH = 20;
-        const int ROWHEIGHTMAX = 100;
+        const int ROWHEIGHTMAX = 1000;
         const int ROWHEIGHTINC = 3;
-        const int THINBANNERHEIGHT = 4;
 
-        Brush _transLightenBr;
+        private readonly Brush txtBgBrush;
+        private readonly Brush txtFgBrush;
 
-        private Brush txtBgBrush, txtFgBrush;
+        private readonly Pen txtUlPen;
+        private readonly Pen txtBrPen;
+        private readonly Pen transLitePen1;
+        private readonly Pen transLitePen2;
+        private readonly Pen transDarkPen1;
+        private readonly Pen transDarkPen2;
+        private readonly StatusStripLabel _labelDATE;
+        private readonly StatusStripLabel _labelWORK;
+        private readonly StatusStripLabel _labelTIME;
+        //private bool _showInfoColumn = true;
+        private bool _showIdleLine;
+        private bool _compensatedScaling = true;
+        private bool _showVerticalCursor = true;
+        private EditSort _editSort = EditSort.NAME;
+        private readonly SortButton _sortButton;
 
-        private Pen txtUlPen, txtBrPen;
-        private Pen transLitePen1;
-        private Pen transLitePen2;
-        private Pen transDarkPen1;
-        private Pen transDarkPen2;
-        //TextBox tBox;
-        readonly StatusStrip _statusStrip;
-        StatusStripLabel _label1;
-        StatusStripLabel _label2;
-        private bool _showInfoColumn = true;
-        private bool _showIdleLine = false;
-
-        private SortButton sortButton;
-
-
-        // private string _toCode(MainArea.PROJECT_COLUMN) = "projColumn";
-        // private string CODE_PROJLABEL = "projLabel";
-        // private string CODE_PROJROW = "projRow";
-        // private string CODE_FUTLABEL = "futLabel";
-        // private string CODE_TIMEHEADER = "timeHead";
-        // private string CODE_DAYBOX = "dayBox";
-        // private string CODE_DAYINFO = "dayInfo";
-        // // private string CODE_SORT = "sort";
-
-
-        // Brush zoneREDbr;
-        // Brush zoneORANGEbr;
-        // Brush zoneYELLOWbr;
-        // Brush zoneGREENbr;
-        // Brush zoneBLUEbr;
-
-        Brush _getToneBrush(Color c) { return (new SolidBrush(ThemeColors.LimitColor(c))); }
 
         string _toCode(MainArea ma) { return ma.ToString(); }
 
@@ -136,12 +131,10 @@ namespace CodeWatcher
             _doubleBuffer = doubleBuffer;
             _theme = theme;
             _font = _doubleBuffer.Font;
+            _smallfont = new Font(_font.FontFamily, _font.Size * 0.7f);
+            _fixedWidthFont = new Font(FontFamily.GenericMonospace, _font.Size);
+            _initCompensatedEventScaling();
 
-            // zoneREDbr = _getToneBrush(Color.Red);
-            // zoneORANGEbr = _getToneBrush(Color.Orange);
-            // zoneYELLOWbr = _getToneBrush(Color.Yellow);
-            // zoneGREENbr = _getToneBrush(Color.ForestGreen);
-            // zoneBLUEbr = _getToneBrush(Color.DeepSkyBlue);
             txtBgBrush = new SolidBrush(Color.FromArgb(20, 20, 20));
             txtFgBrush = new SolidBrush(Color.FromArgb(230, 230, 230));
             txtUlPen = new Pen(Color.FromArgb(80, 80, 80));
@@ -161,45 +154,50 @@ namespace CodeWatcher
             _ttC = new TooltipContainer(_doubleBuffer);
             MidnightNotifier.DayChanged += (s, e) => { _doubleBuffer.Invalidate(); };// make sure it ticks over to next day
 
-            _statusStrip = new StatusStrip();
-            _statusStrip.Dock = DockStyle.Bottom;
-            StatusStripLabel label0 = new StatusStripLabel();
-            label0.Text = @"Position:";
+            var statusStrip = new StatusStrip { Dock = DockStyle.Bottom };
+            StatusStripLabel label0 = new StatusStripLabel { Text = @"Date:" };
             label0.Font = new Font(label0.Font, FontStyle.Bold);
-            _label1 = new StatusStripLabel();
-            StatusStripLabel label3 = new StatusStripLabel();
-            label3.Text = @"Total Work:";
+            _labelDATE = new StatusStripLabel();
+            StatusStripLabel label4 = new StatusStripLabel { Text = @"Time:" };
+            label4.Font = new Font(label4.Font, FontStyle.Bold);
+            _labelTIME = new StatusStripLabel();
+            StatusStripLabel label3 = new StatusStripLabel { Text = @"Total Work Selected:" };
             label3.Font = new Font(label3.Font, FontStyle.Bold);
-            _label2 = new StatusStripLabel();
-            _label1.AutoSize = false;
-            _label1.Size = new Size(200, _label1.Height);
-            _label1.TextAlign = ContentAlignment.MiddleLeft;
-            _label2.AutoSize = false;
-            _label2.Size = new Size(200, _label2.Height);
-            _label2.TextAlign = ContentAlignment.MiddleLeft;
+            _labelWORK = new StatusStripLabel();
+            _labelDATE.AutoSize = false;
+            _labelDATE.Size = new Size(200, _labelDATE.Height);
+            _labelDATE.TextAlign = ContentAlignment.MiddleLeft;
+            _labelTIME.AutoSize = false;
+            _labelTIME.Size = new Size(200, _labelTIME.Height);
+            _labelTIME.TextAlign = ContentAlignment.MiddleLeft;
+            _labelWORK.AutoSize = false;
+            _labelWORK.Size = new Size(200, _labelWORK.Height);
+            _labelWORK.TextAlign = ContentAlignment.MiddleLeft;
 
-            _statusStrip.Items.Add(label0);
-            _statusStrip.Items.Add(_label1);
-            _statusStrip.Items.Add(label3);
-            _statusStrip.Items.Add(_label2);
-            doubleBuffer.Parent.Controls.Add(_statusStrip);
+            statusStrip.Items.Add(label0);
+            statusStrip.Items.Add(_labelDATE);
+            statusStrip.Items.Add(label4);
+            statusStrip.Items.Add(_labelTIME);
+            statusStrip.Items.Add(label3);
+            statusStrip.Items.Add(_labelWORK);
+            doubleBuffer.Parent.Controls.Add(statusStrip);
 
-            sortButton = new SortButton();
-
-
-            sortButton.MouseClick += SortButton_MouseClick;
-            sortButton.Theme = _theme;
-            doubleBuffer.Parent.Controls.Add(sortButton);
-            sortButton.BringToFront();
+            _sortButton = new SortButton();
 
 
-            _rowHeight = _font.Height * 2;
+            _sortButton.MouseClick += SortButton_MouseClick;
+            _sortButton.Theme = _theme;
+            doubleBuffer.Parent.Controls.Add(_sortButton);
+            _sortButton.BringToFront();
+
+
+            _rowHeight = _defaultRowHeight;
         }
 
 
         private void SortButton_MouseClick(object sender, MouseEventArgs e)
         {
-            _fcWatcher.SortProjectsBy = sortButton.SortBy;
+            _fcWatcher.SortProjectsBy = _sortButton.SortBy;
             _doubleBuffer.Refresh();
         }
 
@@ -276,8 +274,11 @@ namespace CodeWatcher
             Properties.Settings.Default.ToPresent = _toPresent;
             Properties.Settings.Default.Joffset = _jOffset;
             Properties.Settings.Default.RowHeight = _rowHeight;
-            Properties.Settings.Default.ShowInfoColumn = _showInfoColumn;
+            //Properties.Settings.Default.ShowInfoColumn = _showInfoColumn;
             Properties.Settings.Default.ShowIdleLine = _showIdleLine;
+            Properties.Settings.Default.ShowVerticalCursor = _showVerticalCursor;
+            Properties.Settings.Default.CompensatedScaling = _compensatedScaling;
+            Properties.Settings.Default.EditSort = _editSort;
             Properties.Settings.Default.Save();
         }
 
@@ -288,17 +289,46 @@ namespace CodeWatcher
             _toPresent = Properties.Settings.Default.ToPresent;
             _jOffset = Properties.Settings.Default.Joffset;
             _rowHeight = Properties.Settings.Default.RowHeight;
-            _showInfoColumn = Properties.Settings.Default.ShowInfoColumn;
+            //_showInfoColumn = Properties.Settings.Default.ShowInfoColumn;
             _showIdleLine = Properties.Settings.Default.ShowIdleLine;
-            _fcWatcher.SortProjectsBy = sortButton.SortBy;
+            _showVerticalCursor = Properties.Settings.Default.ShowVerticalCursor;
+            _compensatedScaling = Properties.Settings.Default.CompensatedScaling;
+            _editSort = Properties.Settings.Default.EditSort;
+            _fcWatcher.SortProjectsBy = _sortButton.SortBy;
         }
 
-        private DateTime _dateTimeAtPtr(int x)
+        // compensated - don't show dead of night at same scale
+        // 9 to 5
+        //                       zero, early,   late,     end
+        double[] _frac = new[] { 0.0, 1.0 / 5, 4.0 / 5, 1.0 };
+        double[] _hrsf = new[] { 0.0, 9.0, 17.0, 24.0 };
+
+        private JSpline1D jSplineFwd;
+        private JSpline1D jSplineRev;
+        private void _initCompensatedEventScaling()
+        {
+            jSplineFwd = new JSpline1D(JSplineType.Linear, new List<double>(_frac), new List<double>(_hrsf));
+            jSplineRev = new JSpline1D(JSplineType.Linear, new List<double>(_hrsf), new List<double>(_frac));
+        }
+        private DateTime _dateTimeAtPtr(int x, bool comp)
         {
             try
             {
-                double d = (x - _leftDemark) / _boxSpace;
-                return (_dt0.Date.AddDays(d));
+                double days = (x - _leftDemark) / _boxSpace;
+                if (comp)
+                {
+                    double wholeDays = (int)days;
+                    double fractDay = days - wholeDays;
+
+                    // spline to give hours
+                    var hrs = jSplineFwd.Calculate(fractDay);
+
+                    return (_dt0.Date.AddDays(wholeDays).AddHours(hrs));
+                }
+                else
+                {
+                    return (_dt0.Date.AddDays(days));
+                }
             }
             catch (Exception)
             {
@@ -307,21 +337,36 @@ namespace CodeWatcher
         }
         private int _screenxAtDateTime(DateTime dt)
         {
-            int sx = (int)((dt - _dt0.Date).TotalDays * _boxSpace + _leftDemark + 0.5 - _boxOff);
-            return (sx);
+            if (_compensatedScaling)
+            {
+                // start of day box
+                var dt0 = dt.Date;
+
+                // fractional hours into this day
+                var hrs = (dt - dt0).TotalHours;
+                // get fractional position (0-1) in this day
+                double frac = jSplineRev.Calculate(hrs);
+
+                int sx = (int)((dt0 - _dt0.Date).TotalDays * _boxSpace + _leftDemark + 0.5 + _boxSpace * frac);
+                return (sx);
+            }
+            else
+            {
+                // full
+                int sx = (int)((dt - _dt0.Date).TotalDays * _boxSpace + _leftDemark + 0.5);
+                return (sx);
+            }
         }
 
         private Rectangle _mainClipRect;
         private int _leftDemark;
         private float _boxSpace = 10;
-        private float _boxOff;
 
         private void _doubleBuffer_PaintEvent(object sender, PaintEventArgs e)
         {
             try
             {
                 MetalTemperatureBrushes.SetRange(0.0, 1.0);
-                _transLightenBr = new SolidBrush(Color.FromArgb(50, Color.Gainsboro));
                 Graphics g = e.Graphics;
                 int width = e.ClipRectangle.Width;
                 int height = e.ClipRectangle.Height;
@@ -329,10 +374,7 @@ namespace CodeWatcher
 
                 g.Clear(_theme.Window.Background.Color);
                 FileChangeTable table;
-                if (_fcWatcher == null ||
-                _fcWatcher.Table == null ||
-                (table = _fcWatcher.Table) == null ||
-               table.ItemCount == 0)
+                if (_fcWatcher?.Table == null || (table = _fcWatcher.Table) == null || table.ItemCount == 0)
                 {
                     g.DrawString("NO DATA!", _font, Brushes.Red, BORDER, TOPHEADINGHEIGHT);
                     return;
@@ -344,21 +386,18 @@ namespace CodeWatcher
                 _dt0 = _calcT0(_dt1);
 
                 int fH = _font.Height;
-                _leftDemark = BORDER + PROJCOLWIDTH + (_showInfoColumn ? INFOCOLUMNWIDTH : 0);
-                int playWidth = (width - _leftDemark - FUTCOLWIDTH);
-                _boxSpace = playWidth / (DaySpan);
-                int boxW = (int)(_boxSpace > MINGAPPEDBOXSPACE ? (_boxSpace - TINYSPACE * 2) : _boxSpace);
-                if (boxW < MINBOXW) boxW = MINBOXW;//not too small, always visible
+                _leftDemark = BORDER + PROJCOLWIDTH;
+                int playWidth = width - _leftDemark - FUTCOLWIDTH;
+                _boxSpace = playWidth / DaySpan;
+                int boxW = Math.Max((int)_boxSpace, MINBOXW);//not too small, always visible
                 int boxCenterOff = boxW / 2;
-                _boxOff = (_boxSpace - boxW) / 2;
                 _scrollDays = Math.Max(1, (int)(50 / _boxSpace));
 
                 bool showDayOfWeek = _boxSpace > fH;
                 bool showDayOfMonth = _boxSpace > fH;
                 bool showMondays = _boxSpace * 7 > fH * 2;
                 bool showDayVerticals = _boxSpace > fH;
-                bool showFullBanner = _rowHeight > fH * 2;
-                int boxH = showFullBanner ? _rowHeight - fH - 2 : _rowHeight - THINBANNERHEIGHT;
+                int activityIndHeight = _rowHeight - 2;
                 _mainClipRect = new Rectangle(_leftDemark, 0, width - _leftDemark, height);
 
                 Rectangle mainR = new Rectangle(_leftDemark, TOPHEADINGHEIGHT, width - _leftDemark, height - TOPHEADINGHEIGHT);
@@ -387,18 +426,13 @@ namespace CodeWatcher
                 Brush hiliteBr = _theme.Highlight.Foreground.Brush;
                 bool presentDayShown = false;
 
-                sortButton.SortBy = _fcWatcher.SortProjectsBy;
+                _sortButton.SortBy = _fcWatcher.SortProjectsBy;
                 var loc = _doubleBuffer.Location;
-                sortButton.Size = new Size(fH, fH);
-                sortButton.Location = new Point(loc.X + PROJCOLWIDTH + BORDER - sortButton.Width, loc.Y + TOPHEADINGHEIGHT - sortButton.Height);
+                _sortButton.Size = new Size(fH, fH);
+                _sortButton.Location = new Point(loc.X + PROJCOLWIDTH + BORDER - _sortButton.Width-1, loc.Y + TOPHEADINGHEIGHT - _sortButton.Height);
 
                 // draw
                 g.DrawString("Project", _font, fgBr, BORDER, TOPHEADINGHEIGHT - fH);
-                if (_showInfoColumn)
-                {
-                    g.DrawString("wd:hr:mn", _font, fgBr, BORDER + BORDER + PROJCOLWIDTH, TOPHEADINGHEIGHT - 2 * fH);
-                    g.DrawString("edit count", _font, fgBr, BORDER + BORDER + PROJCOLWIDTH, TOPHEADINGHEIGHT - fH);
-                }
 
                 _ttC.Add(_toCode(MainArea.PROJECT_COLUMN), new Rectangle(0, 0, _leftDemark, height), null, this);
 
@@ -431,30 +465,19 @@ namespace CodeWatcher
                     g.SetClip(clipRect);
                     g.FillRectangle(proj.Brush, clipRect);
 
+                    g.DrawString(proj.EditCount + " [" + proj.SelectedEditCount + "]",
+                        _font, proj.ContrastBrush, fx, py + (int)(fH * 1.2));
 
-                    g.SetClip(clipRect);
-                    if (_showInfoColumn)
-                    {
-                        var infoRect = clipRect;
-                        infoRect.X = clipRect.Right - INFOCOLUMNWIDTH;
-                        infoRect.Width = INFOCOLUMNWIDTH;
-                        infoRect.Inflate(0, -2);
-                        g.FillRectangle(_transLightenBr, infoRect);
-
-                        //g.DrawString(proj.ActivityTrace.Summary, _font, proj.ContrastBrush, infoRect.X + BORDER, py);
-                        g.DrawString(proj.EditCount.ToString() + " [" + proj.SelectedEditCount + "]",
-                            _font, proj.ContrastBrush, infoRect.X + BORDER, py + fH);
-                    }
-
+                    if (proj.Selected)
                     if (proj.Selected)
                     {
                         Rectangle selRect = clipRect;
-                        selRect.Width = 4;
+                        selRect.Width = 5;
                         selRect.Height--;
+                        g.FillRectangle(_theme.Window.Background.Brush, selRect);
+                        selRect.Width--;
                         g.FillRectangle(hiliteBr, selRect);
                     }
-
-
 
                     Rectangle textRect = clipRect;
                     textRect.X = (int)fx;
@@ -462,12 +485,19 @@ namespace CodeWatcher
                     textRect.Width = PROJCOLWIDTH - BORDER - BORDER;
                     textRect.Height = fH;
                     textRect.Inflate(0, 2);
-                    g.ResetClip();
-                    g.SetClip(textRect);
-                    _drawInsetBorderRectangle(g, textRect);
-                    g.DrawString(proj.Name, _font, txtFgBrush, (int)fx, py);
 
                     g.ResetClip();
+
+                    Rectangle iClip = clipRect;
+                    iClip.Intersect(textRect);
+                    g.SetClip(iClip);
+                    _drawInsetBorderRectangle(g, textRect);
+                    g.DrawString(proj.Name, _font, txtFgBrush, (int)fx, py);
+                    g.ResetClip();
+
+
+                    
+
                     _drawShadedTopBottom(g, clipRect);
 
 
@@ -492,9 +522,16 @@ namespace CodeWatcher
                         if (fx > width) break;
                         if (ic == 1)
                         {
-                            int tY = (int)(y - 1.5 * fH);
+                            int tY = (int)(y - 2.5 * fH);
                             int boxCenter = (int)fx + boxCenterOff;
-                            if (showDayOfWeek) { _drawCenteredString(g, date.ToString("ddd").Substring(0, 1), _font, fgBr, boxCenter, tY); tY -= fH; }
+                            if (showDayOfWeek)
+                            {
+                                _drawCenteredString(g,
+                                  _boxSpace > 100 ?
+                                      date.ToString("dddd") :
+                                      date.ToString("ddd").Substring(0, 1),
+                                    _font, fgBr, boxCenter, tY); tY -= fH;
+                            }
 
                             if (showDayOfMonth || (icDay == 0 && showMondays)) { _drawCenteredString(g, date.Day.ToString(), _font, fgBr, boxCenter, tY); tY -= fH; }
                             else if (showMondays)
@@ -507,7 +544,7 @@ namespace CodeWatcher
                             if (icDay == 0 || date.Day == 1) //MONTH
                             {
                                 yMonth = tY + fH;
-                                g.FillRectangle(date.Month % 2 == 0 ? mo1Br : mo2Br, (int)(fx - _boxOff + 0.5), tY, width - fx, fH);
+                                g.FillRectangle(date.Month % 2 == 0 ? mo1Br : mo2Br, (int)(fx + 0.5), tY, width - fx, fH);
                                 g.DrawString(date.ToString("MMMM"), _font, date.Month % 2 == 0 ? mo1CBr : mo2CBr, fx, tY); tY -= fH;
                             }
 
@@ -519,30 +556,50 @@ namespace CodeWatcher
                             // START OF WEEK
                             if (date.DayOfWeek == DayOfWeek.Monday ||
                                 date.DayOfWeek == DayOfWeek.Saturday)
-                                verts.Add(fx - _boxOff);
+                                verts.Add(fx);
 
-                            if (showDayVerticals) dayVerts.Add(fx - _boxOff);
+                            if (showDayVerticals) dayVerts.Add(fx);
+
+
+                            // ticks
+                            if (_boxSpace > 200)
+                                foreach (DateTime dtTick in FileChangeTable.EachTimeSpan(date.AddHours(1), date.AddDays(0.95),
+                                    TimeSpan.FromHours(1)))
+                                {
+
+                                    var tkX = _screenxAtDateTime(dtTick);
+                                    g.DrawLine(_theme.Window.Medium.Pen, tkX, TOPHEADINGHEIGHT, tkX, TOPHEADINGHEIGHT - TICKH);
+                                    if (dtTick.Hour >= 9 && dtTick.Hour <= 17)
+                                    {
+                                        string txt = dtTick.ToString("%h");
+                                        var siz = g.MeasureString(txt, _smallfont);
+                                        g.DrawString(txt, _smallfont, _theme.Window.Medium.Brush,
+                                            tkX - siz.Width / 2, TOPHEADINGHEIGHT - TICKH - _smallfont.Height);
+                                    }
+                                }
+
                         }
 
-                        if (date.DayOfWeek == DayOfWeek.Saturday ||
-                            date.DayOfWeek == DayOfWeek.Sunday)
+
+                        // weekend
+                        if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
                         {
-                            Rectangle weRect = rectBg;
-                            weRect.X = (int)(fx - _boxOff + 0.5);
-                            weRect.Width = (int)(_boxSpace + 1);
-                            g.FillRectangle(weekendBrush, weRect);
+                            Rectangle dayRect = rectBg;
+                            dayRect.X = (int)(fx + 0.5);
+                            dayRect.Width = (int)(_boxSpace + 1);
+                            g.FillRectangle(weekendBrush, dayRect);
                         }
 
-                        // DAYBOX
+                        // day
                         if (pDay != null && pDay.Count > 0)
                         {
-                            double activity = ((double)pDay.Count) / peakOpsInDay;
-                            int bH = boxH;
-                            Rectangle rect = new Rectangle((int)fx, y + _rowHeight - bH, boxW, bH);
-                            Brush br = MetalTemperatureBrushes.GetBrush(activity);
-                            g.FillRectangle(br, rect);
-                            _ttC.Add(_toCode(MainArea.DAYBOX), rect, null, pDay);
-                            if (pDay == _pDayInfoDay) pDayInfoRect = rect;
+                            Rectangle dayRect = rectBg;
+                            dayRect.X = (int)(fx + 0.5);
+                            dayRect.Width = (int)(_boxSpace + 1);
+                            Brush br = MetalTemperatureBrushes.GetBrush(((double)pDay.Count) / peakOpsInDay);
+                            g.FillRectangle(br, dayRect);
+                            _ttC.Add(_toCode(MainArea.DAYBOX), dayRect, null, pDay);
+                            if (pDay == _pDayInfoDay) pDayInfoRect = dayRect;
                         }
 
 
@@ -557,19 +614,21 @@ namespace CodeWatcher
                         int edW = _screenxAtDateTime(_dt0.AddMinutes(ActivityTraceBuilder.PerEditMinutes)) - _screenxAtDateTime(_dt0);
                         if (edW < 2) edW = 2;
 
+                        int aY = y + _rowHeight - activityIndHeight - 1;
                         foreach (var fci in proj.Collection)
                         {
-                            if (fci.ChangeType.HasAny(ActionTypes.UserIdle | ActionTypes.Suspend)) continue;
+                            if (fci.ChangeType.HasAny(ActionTypes.USER_IDLE | ActionTypes.SUSPEND)) continue;
                             int sx0 = _screenxAtDateTime(fci.DateTime);
-                            g.FillRectangle(_theme.Window.Medium.Brush, sx0, y + _rowHeight - boxH, edW, boxH);
+                            g.FillRectangle(_theme.Window.Medium.Brush, sx0, aY, edW, activityIndHeight);
                         }
+
                         // REDLINES
                         if (_showIdleLine)
                             foreach (var fci in proj.Collection)
                             {
-                                if (!fci.ChangeType.HasAny(ActionTypes.UserIdle | ActionTypes.Suspend)) continue;
+                                if (!fci.ChangeType.HasAny(ActionTypes.USER_IDLE | ActionTypes.SUSPEND)) continue;
                                 int sx0 = _screenxAtDateTime(fci.DateTime);
-                                g.FillRectangle(Brushes.Red, sx0, y + _rowHeight - boxH, 1, boxH);
+                                g.FillRectangle(Brushes.Red, sx0, aY, 1, activityIndHeight);
                             }
                     }
 
@@ -582,9 +641,10 @@ namespace CodeWatcher
 
                 if (table.SelectionState)
                 {
-                    int SELBARH = 6;
-                    int SELHANDLEW = 15;
-                    int SELHANDLEOFF = 5;
+                    // ReSharper disable once IdentifierTypo
+                    const int SELBARH = 6;
+                    const int SELHANDLEW = 15;
+                    const int SELHANDLEOFF = 5;
                     Color clr = _theme.Window.Foreground.Color;
                     Brush brTrans = new SolidBrush(Color.FromArgb(40, clr));
                     Brush brBdr = new SolidBrush(Color.FromArgb(230, clr));
@@ -625,11 +685,12 @@ namespace CodeWatcher
                         sx0 = _screenxAtDateTime(abBlock.StartDate);
                         sx1 = _screenxAtDateTime(abBlock.EndDate);
                         int aW = Math.Max(sx1 - sx0, 2);
-                        g.FillRectangle(_theme.Highlight.Medium.Brush, sx0, TOPHEADINGHEIGHT - SELBARH+1, aW,
-                            SELBARH-2);
+                        g.FillRectangle(_theme.Highlight.Medium.Brush, sx0, TOPHEADINGHEIGHT - SELBARH + 1, aW,
+                            SELBARH - 2);
                     }
                     g.ResetClip();
                 }
+
 
 
 
@@ -640,22 +701,22 @@ namespace CodeWatcher
                 g.FillRectangle(presBr, futRect);
 
 
-                _label2.Text = table.Activity.Summary;
+                _labelWORK.Text = table.Activity.Summary;
 
-                // horiz
+                // horizontal lines
                 g.DrawLine(_theme.Window.Medium.Pen, 0, TOPHEADINGHEIGHT, width, TOPHEADINGHEIGHT);
-                // vert
+                // vertical lines
                 g.DrawLine(_theme.Window.High.Pen2, _leftDemark, 0, _leftDemark, height);
                 g.SetClip(_mainClipRect);
                 foreach (var vx in dayVerts) g.DrawLine(_theme.VeryTranslucentPen, vx, yMonth, vx, height);
                 foreach (var vx in verts) g.DrawLine(_theme.TranslucentPen, vx, yMonth, vx, height);
                 g.ResetClip();
 
+                if (_ptrTrack != null)
+                    g.DrawLine(_theme.Highlight.Foreground.Pen, ((Point)_ptrTrack).X, TOPHEADINGHEIGHT, ((Point)_ptrTrack).X, height);
+
                 _drawDayInfo(g, pDayInfoRect);
 
-
-                if (_ptrTrack != null)
-                    g.DrawLine(_theme.TranslucentPen, ((Point)_ptrTrack).X, 0, ((Point)_ptrTrack).X, height);
 
 
                 if (presentDayShown && _toPresent == false)
@@ -702,21 +763,35 @@ namespace CodeWatcher
             Clipboard.SetText(summary);
         }
 
-        internal void ShowInfoColumn(bool chk)
-        {
-            _showInfoColumn = chk;
-            _doubleBuffer.Refresh();
-        }
-
         public void ShowIdleLine(bool chk)
         {
             _showIdleLine = chk;
             _doubleBuffer.Refresh();
         }
 
+        public void ShowCompensatedScale(bool chk)
+        {
+            _compensatedScaling = chk;
+            _doubleBuffer.Refresh();
+        }
+
+        public void ShowVerticalCursor(bool chk)
+        {
+            _showVerticalCursor = chk;
+            _doubleBuffer.Refresh();
+        }
+
+        public void SetEditSort(EditSort srt)
+        {
+            _editSort = srt;
+            _setDayInfo(_pDayInfoDay);
+            _doubleBuffer.Refresh();
+        }
+
+
         internal void RemoveTimeSelectionEdits()
         {
-            var dR = MessageBox.Show("Remove edits in Time Selection?", "This will PERMANENTLY remove them! Are you sure?",
+            var dR = MessageBox.Show(@"Remove edits in Time Selection?", @"This will PERMANENTLY remove them! Are you sure?",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
             if (dR == DialogResult.Yes)
             {
@@ -746,7 +821,7 @@ namespace CodeWatcher
             _toPresent = false;
             _dt0 = _dt0.AddDays(inc);
 
-            if (_fcWatcher != null && _fcWatcher.Table != null)
+            if (_fcWatcher?.Table != null)
             {
                 var tmpT1 = _calcT1(_dt0);
                 var today = DateTime.Now.Date;
@@ -760,19 +835,30 @@ namespace CodeWatcher
 
         void _incDaySpan(int inc)
         {
-            DDaySpan = (int)(DDaySpan * Math.Pow(1.2, inc));
-            if (!_toPresent) _dt1 = _calcT1(_dt0);
+            if (DDaySpan > 7)
+            {
+                DDaySpan = (int)(DDaySpan * Math.Pow(1.2, inc));
+                if (!_toPresent) _dt1 = _calcT1(_dt0);
+            }
+            else if (inc > 0)
+            {
+                DDaySpan += 1;
+            }
+            else if (inc < 0)
+            {
+                DDaySpan -= 1;
+            }
         }
 
         void _incRowHeight(int inc)
         {
             _rowHeight += inc;
             if (_rowHeight > ROWHEIGHTMAX) _rowHeight = ROWHEIGHTMAX;
-            if (_rowHeight < _font.Height) _rowHeight = _font.Height;
+            if (_rowHeight < _minRowHeight) _rowHeight = _minRowHeight;
         }
         double DDaySpan
         {
-            get { return (_dDaySpan); }
+            get => (_dDaySpan);
             set
             {
                 _dDaySpan = value; _iDaySpan = (int)Math.Round(_dDaySpan, MidpointRounding.AwayFromZero);
@@ -780,7 +866,10 @@ namespace CodeWatcher
             }
         }
         int DaySpan
-        { get { return (_iDaySpan); } set { _iDaySpan = value; if (_iDaySpan < 7) _iDaySpan = 7; _dDaySpan = _iDaySpan; } }
+        {
+            get => (_iDaySpan);
+            set { _iDaySpan = value; if (_iDaySpan < 1) _iDaySpan = 1; _dDaySpan = _iDaySpan; }
+        }
 
         DateTime _calcT0(DateTime dt1) { return (dt1.AddDays(-(DaySpan - 1))); }
         DateTime _calcT1(DateTime dt0) { return (dt0.AddDays(DaySpan - 1)); }
@@ -812,7 +901,7 @@ namespace CodeWatcher
             // + shift + whole select moves whole thing
             _dtHandleInit0 = _fcWatcher.Table.SelectionStartDate;
             _dtHandleInit1 = _fcWatcher.Table.SelectionEndDate;
-            _dtInitClick = _dateTimeAtPtr(e.X);
+            _dtInitClick = _dateTimeAtPtr(e.X, false);
             if (_ttC.IsDataRegionAtPointer(e, _toCode(MainArea.SELECTED_START)))
             {
                 _dtMod = MainArea.SELECTED_START;
@@ -832,8 +921,8 @@ namespace CodeWatcher
             else if (_ttC.IsDataRegionAtPointer(e, _toCode(MainArea.TOPHEADER)))
             {
                 // no handle click STARTS selection
-                _dtHandleInit0 = _dateTimeAtPtr(e.X);
-                _dtHandleInit1 = _dateTimeAtPtr(e.X);
+                _dtHandleInit0 = _dateTimeAtPtr(e.X, false);
+                _dtHandleInit1 = _dateTimeAtPtr(e.X, false);
                 _fcWatcher.Table.SetTimeSelection(_dtHandleInit0, _dtHandleInit1, true);
                 _dtMod = MainArea.SELECTED_END;
                 _doubleBuffer.Refresh();
@@ -865,7 +954,7 @@ namespace CodeWatcher
                     // make project invisible
                     proj.Visible = false;
                     _fcWatcher.UpdateActivity();
-                   _fcWatcher.FireEvent();
+                    _fcWatcher.FireEvent();
                     return;
                 }
                 else if (ChartViewer.IsModifierHeld(Keys.Shift))
@@ -907,8 +996,7 @@ namespace CodeWatcher
             }
 
 
-            FileChangeDay pDay = _ttC.GetDataAtPointer(e, _toCode(MainArea.DAYINFO)) as FileChangeDay;
-            if (pDay != null)
+            if (_ttC.GetDataAtPointer(e, _toCode(MainArea.DAYINFO)) is FileChangeDay pDay)
             {
                 _setDayInfo(null);
                 _doubleBuffer.Refresh();
@@ -918,10 +1006,8 @@ namespace CodeWatcher
             pDay = _ttC.GetDataAtPointer(e, _toCode(MainArea.DAYBOX)) as FileChangeDay;
             if (pDay != null)
             {
-                if (pDay == _pDayInfoDay) _setDayInfo(null);// toggle
-                else _setDayInfo(pDay);
+                _setDayInfo(pDay == _pDayInfoDay ? null : pDay);
                 _doubleBuffer.Refresh();
-                return;
             }
         }
 
@@ -931,11 +1017,38 @@ namespace CodeWatcher
         {
             if (_fcWatcher == null) return;
 
-            DateTime mDt0 = _dateTimeAtPtr(e.X);
-            _label1.Text = mDt0.ToString(CultureInfo.InvariantCulture);
+            DateTime mDt0 = _dateTimeAtPtr(e.X, _compensatedScaling);
+            _labelDATE.Text = mDt0.ToString("D");
+
+            int px = 2;
+            TimeSpan deltaSpan = _dateTimeAtPtr(100 + px, false) - _dateTimeAtPtr(100, false);
+            DateTime dispTime;
+            if (deltaSpan.TotalDays >= 1.0)
+            {
+                var dayInc = (int)GeneralUtilities.Round125Above(deltaSpan.TotalDays);
+                dispTime = FileChangeTable.Round(mDt0, new TimeSpan(dayInc, 0, 0, 0));
+            }
+            else if (deltaSpan.TotalHours >= 1.0)
+            {
+                var hrInc = (int)GeneralUtilities.Round125Above(deltaSpan.TotalHours);
+                dispTime = FileChangeTable.Round(mDt0, new TimeSpan(0, hrInc, 0, 0));
+            }
+            else if (deltaSpan.TotalMinutes >= 1.0)
+            {
+                var minInc = (int)GeneralUtilities.Round125Above(deltaSpan.TotalMinutes);
+                dispTime = FileChangeTable.Round(mDt0, new TimeSpan(0, 0, minInc, 0));
+            }
+            else
+            {
+                dispTime = mDt0;
+            }
+
+
+
+            _labelTIME.Text = dispTime.ToString("h:mmtt");
 
             Point? ptr = null;
-            if (ChartViewer.IsModifierHeld(Keys.Shift)) ptr = e.Location;
+            if (_showVerticalCursor) ptr = new Point(_screenxAtDateTime(dispTime), e.Y);
             if (ptr != _ptrTrack)
             {
                 _ptrTrack = ptr;
@@ -993,13 +1106,7 @@ namespace CodeWatcher
                            "Duration: " + pDay.EstimatedDuration.ToString(@"hh\:mm") + Environment.NewLine +
                            "   Edits: " + pDay.EditCount + Environment.NewLine +
                            Environment.NewLine +
-                           pDay.GetChangedFiles();
-
-                // string[] lines = _dayInfo.Split(new[] { "\r\n", "\r", "\n" },StringSplitOptions.None);
-                // int ic = 1;
-                // _dayInfo = string.Join(Environment.NewLine, lines.Select(i => (ic++).ToString("000 ") + i).ToArray());
-
-
+                           pDay.GetChangedFiles(_editSort);
             }
             else
             {
@@ -1012,7 +1119,7 @@ namespace CodeWatcher
             if (_pDayInfoDay == null) return;
             if (dayRectangle == null) return;
 
-            int offset = _font.Height;
+            int offset = _fixedWidthFont.Height;
             Rectangle dRect = (Rectangle)dayRectangle;
             var matches = Regex.Matches(_dayInfo, Environment.NewLine);
             int lineCount = matches.Count + 1;
@@ -1040,7 +1147,7 @@ namespace CodeWatcher
                     string strSub = _dayInfo.Substring(i0, i1 - i0 + 1).Trim();
                     strList.Add(strSub);
 
-                    var siz = g.MeasureString(strSub, _font);
+                    var siz = g.MeasureString(strSub, _fixedWidthFont);
                     colWidth = Math.Max(colWidth, (int)(siz.Width + 0.5));
                     boxHeight = Math.Max(boxHeight, (int)(siz.Height + 0.5));
                     i0 = i1 + 1;
@@ -1080,11 +1187,10 @@ namespace CodeWatcher
                     int x = rect.X + 2;
                     foreach (var subStr in strList)
                     {
-                        g.DrawString(subStr, _font, _theme.Window.High.Brush, x, rect.Y + 3);
+                        g.DrawString(subStr, _fixedWidthFont, _theme.Window.High.Brush, x, rect.Y + 3);
                         x += (colWidth + offset * 2);
                     }
 
-                    //g.DrawString(lineCount.ToString(), _font, Brushes.Red, rect.X+100, rect.Y);
                     _ttC.Add(_toCode(MainArea.DAYINFO), rect, null, _pDayInfoDay);
                     break;
                 }
@@ -1100,8 +1206,7 @@ namespace CodeWatcher
 
         private Paths _pathFromRect(Rectangle rect)
         {
-            Paths clip = new Paths(1);
-            clip.Add(new Path(4));
+            Paths clip = new Paths(1) { new Path(4) };
             clip[0].Add(new IntPoint(rect.Left, rect.Top));
             clip[0].Add(new IntPoint(rect.Left, rect.Bottom));
             clip[0].Add(new IntPoint(rect.Right, rect.Bottom));
@@ -1116,9 +1221,14 @@ namespace CodeWatcher
             if (ChartViewer.IsModifierHeld(Keys.Shift) && ChartViewer.IsModifierHeld(Keys.Control))
             {
                 // day at mouse..
-                double ptrProp = ((double)(e.X - _leftDemark)) / (_doubleBuffer.Width - _leftDemark - FUTCOLWIDTH);
+                var cX = (_doubleBuffer.Width + _leftDemark) / 2;
+                double ptrProp = ((double)(cX - _leftDemark)) / (_doubleBuffer.Width - _leftDemark - FUTCOLWIDTH);
                 var ptrDate = _dt0.AddDays(ptrProp * DDaySpan);
                 _incDaySpan(-click);
+
+                // keep moused-over day at center
+                var dtAtPtr = _dateTimeAtPtr(e.X, _compensatedScaling);
+
                 // re-center
                 _dt0 = ptrDate.AddDays(-(ptrProp * DDaySpan));
                 _dt1 = _calcT1(_dt0);
@@ -1142,6 +1252,7 @@ namespace CodeWatcher
             }
         }
 
+        // ReSharper disable once UnusedMember.Global
         public FileChangeProject GetProjectAtPointer()
         {
             var ptr = _doubleBuffer.PointToClient(Cursor.Position);
@@ -1149,7 +1260,7 @@ namespace CodeWatcher
             return (proj);
         }
 
-        readonly ColorForm colorForm = new ColorForm();
+        readonly ColorForm _colorForm = new ColorForm();
         public void EditColor()
         {
             int count = _fcWatcher.Table.CountProjects(DataState.True, DataState.True);
@@ -1169,20 +1280,28 @@ namespace CodeWatcher
                 ? _doubleBuffer.PointToScreen(new Point(dReg.Rectangle.Right - 7, dReg.Rectangle.Top))
                 : _doubleBuffer.PointToScreen(new Point(_leftDemark - 7, TOPHEADINGHEIGHT));
 
-            colorForm.SelectedColor = count > 1 ? Color.Gray : firstSelProject.Color;
-            colorForm.InfoText = count > 1 ? "multiple" : firstSelProject.Name;
-            colorForm.Location = pt;
+            if (firstSelProject != null)
+            {
+                _colorForm.SelectedColor = count > 1 ? Color.Gray : firstSelProject.Color;
+                _colorForm.InfoText = count > 1 ? "multiple" : firstSelProject.Name;
+            }
+            else
+            {
+                _colorForm.SelectedColor = Color.Gray;
+                _colorForm.InfoText = "";
+            }
+            _colorForm.Location = pt;
             _fcWatcher.Table.ProjectCollection.ForEach(proj =>
             {
-                if (proj.Visible) colorForm.AppendUserColors(proj.Color);
+                if (proj.Visible) _colorForm.AppendUserColors(proj.Color);
             });
 
-            var dR = colorForm.ShowDialog();
+            var dR = _colorForm.ShowDialog();
 
             if (dR == DialogResult.OK)
                 _fcWatcher.Table.ProjectCollection.ForEach(proj =>
                 {
-                    if (proj.Selected && proj.Visible) proj.Color = colorForm.SelectedColor;
+                    if (proj.Selected && proj.Visible) proj.Color = _colorForm.SelectedColor;
                 });
             _doubleBuffer.Refresh();
         }
@@ -1193,6 +1312,37 @@ namespace CodeWatcher
             _doubleBuffer.Refresh();
         }
 
+        List<int> _rowHeightStore = new List<int>();
+
+        public void StepRowHeights()
+        {
+            // maybe keep last height that is not max or min (if any)
+            int lastH = _rowHeightStore.LastOrDefault(h => h != _minRowHeight && h != _maxRowHeight && h != _defaultRowHeight &&
+                h != _fitRowHeight);
+
+            // add back
+            _rowHeightStore.Clear();
+            if (_rowHeight != _minRowHeight && _rowHeight != _maxRowHeight && _rowHeight != _defaultRowHeight && _rowHeight != _fitRowHeight)
+                _rowHeightStore.Add(_rowHeight);
+            else if (lastH != 0) _rowHeightStore.Add(lastH);
+            _rowHeightStore.Add(_defaultRowHeight);
+            _rowHeightStore.Add(_minRowHeight);
+            _rowHeightStore.Add(_maxRowHeight);
+            _rowHeightStore.Add(_fitRowHeight);
+            _rowHeightStore.RemoveAll(h => h > _maxRowHeight);
+            _rowHeightStore = _rowHeightStore.Distinct().ToList();
+
+            _rowHeightStore.Sort();
+
+            int idx = _rowHeightStore.IndexOf(_rowHeight);
+            if (idx == -1) idx = _rowHeightStore.Count - 1;
+            idx++;
+            idx = idx % _rowHeightStore.Count;
+
+            // user set
+            _rowHeight = _rowHeightStore[idx];
+            _doubleBuffer.Refresh();
+        }
         public void SameRandomColor()
         {
             var color = FileChangeProject.ColorRotator.Random();
@@ -1200,6 +1350,7 @@ namespace CodeWatcher
             _doubleBuffer.Refresh();
         }
 
+        // ReSharper disable once UnusedMember.Global
         public MainArea GetAreasPointedAt()
         {
             var ptr = _doubleBuffer.PointToClient(Cursor.Position);
@@ -1209,28 +1360,25 @@ namespace CodeWatcher
             {
                 if (dr.Rectangle.Contains(ptr))
                 {
-                    MainArea tmp;
-                    if (Enum.TryParse(dr.Code, out tmp)) areas |= tmp;
+                    if (Enum.TryParse(dr.Code, out MainArea tmp)) areas |= tmp;
                 }
             });
 
             return (areas);
         }
 
+        // ReSharper disable once UnusedMember.Global
         public bool AnyAreasPointedAt(MainArea areaReq)
         {
             var ptr = _doubleBuffer.PointToClient(Cursor.Position);
 
-            var dR = _ttC.Collection.FirstOrDefault(dr =>
-            {
-                MainArea tmp;
-                return (dr.Rectangle.Contains(ptr) &&
-                        Enum.TryParse(dr.Code, out tmp) &&
-                        areaReq.HasFlag(tmp));
-            });
+            var dR = _ttC.Collection.FirstOrDefault(dr => (dr.Rectangle.Contains(ptr) &&
+                                                           Enum.TryParse(dr.Code, out MainArea tmp) &&
+                                                           areaReq.HasFlag(tmp)));
 
             return (dR != null);
         }
+
     }
 
 }

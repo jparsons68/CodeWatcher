@@ -11,30 +11,30 @@ namespace CodeWatcher
     [Flags]
     public enum ActionTypes
     {
-        None = 0,
-        Created = 1,
-        Deleted = 2,
-        Changed = 4,
-        Renamed = 8,
+        NONE = 0,
+        CREATED = 1,
+        DELETED = 2,
+        CHANGED = 4,
+        RENAMED = 8,
 
-        Suspend = 16,
-        Resume = 32,
+        SUSPEND = 16,
+        RESUME = 32,
 
-        UserIdle = 64,
-
+        USER_IDLE = 64,
     }
 
     public enum SortBy
     {
-        MostRecentFirst,
-        EarliestFirst,
-        Alphabetical,
-        ReverseAlphabetical
+        MOST_RECENT_FIRST,
+        EARLIEST_FIRST,
+        ALPHABETICAL,
+        REVERSE_ALPHABETICAL
     }
 
 
     public static class EnumExtensions
     {
+        // ReSharper disable once UnusedMember.Global
         public static int Count<T>(this T source) where T : IConvertible//enum
         {
             if (!typeof(T).IsEnum)
@@ -43,6 +43,7 @@ namespace CodeWatcher
             return Enum.GetNames(typeof(T)).Length;
         }
 
+        // ReSharper disable once UnusedMember.Global
         public static string BinaryString(this Enum value, int width)
         {
             int i = Convert.ToInt32(value);
@@ -57,11 +58,11 @@ namespace CodeWatcher
 
         public static T Next<T>(this T src) where T : struct
         {
-            if (!typeof(T).IsEnum) throw new ArgumentException(String.Format("Argument {0} is not an Enum", typeof(T).FullName));
+            if (!typeof(T).IsEnum) throw new ArgumentException($"Argument {typeof(T).FullName} is not an Enum");
 
-            T[] Arr = (T[])Enum.GetValues(src.GetType());
-            int j = Array.IndexOf<T>(Arr, src) + 1;
-            return (Arr.Length == j) ? Arr[0] : Arr[j];
+            T[] arr = (T[])Enum.GetValues(src.GetType());
+            int j = Array.IndexOf(arr, src) + 1;
+            return (arr.Length == j) ? arr[0] : arr[j];
         }
     }
 
@@ -72,16 +73,18 @@ namespace CodeWatcher
 
 
         DateTime _dateTime;
-        static string dtFormat = "yyyy MM dd HH mm ss";
-        public string Path { get; private set; }
+        private const string DtFormat = "yyyy MM dd HH mm ss";
+        public string Path { get; }
         public string ProjectPath { get; set; }
-        public DateTime DateTime { get { return _dateTime; } private set { _dateTime = FileChangeTable.Round(value, oneSec); } }
-        public ActionTypes ChangeType { get; private set; }
+        public DateTime DateTime { get => _dateTime;
+            private set => _dateTime = FileChangeTable.Round(value, OneSec);
+        }
+        public ActionTypes ChangeType { get; }
 
         public FileChangeProject Project { get; internal set; }
         public FileChangeDay Day { get; internal set; }
 
-        public string Name { get { return (Path != null ? System.IO.Path.GetFileName(Path) : null); } }
+        public string Name => System.IO.Path.GetFileName(Path);
 
         public string AuxInfo { get; internal set; }
         public FileChangeTable Table { get; internal set; }
@@ -121,16 +124,16 @@ namespace CodeWatcher
                 var part = _splitByChevrons(str);
                 path = part[0].Length > 0 ? part[0] : null;
                 CultureInfo provider = CultureInfo.InvariantCulture;
-                dt = DateTime.ParseExact(part[1], dtFormat, provider);
-                ct = (ActionTypes)Enum.Parse(typeof(ActionTypes), part[2]);
+                dt = DateTime.ParseExact(part[1], DtFormat, provider);
+                ct = (ActionTypes)Enum.Parse(typeof(ActionTypes), part[2], true);
                 if (part.Length > 3) auxInfo = part[3];
             }
             catch (Exception ex)
             {
-                Console.WriteLine("File Parse error:" + ex.ToString());
+                Console.WriteLine(@"File Parse error:" + ex);
                 path = null;
                 dt = DateTime.MinValue;
-                ct = ActionTypes.Changed;
+                ct = ActionTypes.CHANGED;
             }
 
             Path = path;
@@ -199,16 +202,16 @@ namespace CodeWatcher
             Path = null;
             ProjectPath = null;
             DateTime = DateTime.Now;
-            ChangeType = ActionTypes.UserIdle;
+            ChangeType = ActionTypes.USER_IDLE;
         }
 
         private ActionTypes _convert(PowerModes mode)
         {
             switch (mode)
             {
-                case PowerModes.Resume: return (ActionTypes.Resume);
-                case PowerModes.Suspend: return (ActionTypes.Suspend);
-                default: return (ActionTypes.None);
+                case PowerModes.Resume: return (ActionTypes.RESUME);
+                case PowerModes.Suspend: return (ActionTypes.SUSPEND);
+                default: return (ActionTypes.NONE);
             }
         }
 
@@ -216,17 +219,17 @@ namespace CodeWatcher
         {
             switch (changeType)
             {
-                case WatcherChangeTypes.Created: return (ActionTypes.Created);
-                case WatcherChangeTypes.Deleted: return (ActionTypes.Deleted);
-                case WatcherChangeTypes.Changed: return (ActionTypes.Changed);
-                case WatcherChangeTypes.Renamed: return (ActionTypes.Renamed);
-                default: return (ActionTypes.None);
+                case WatcherChangeTypes.Created: return (ActionTypes.CREATED);
+                case WatcherChangeTypes.Deleted: return (ActionTypes.DELETED);
+                case WatcherChangeTypes.Changed: return (ActionTypes.CHANGED);
+                case WatcherChangeTypes.Renamed: return (ActionTypes.RENAMED);
+                default: return (ActionTypes.NONE);
             }
         }
 
         public override string ToString()
         {
-            string line = "<" + Path + "><" + DateTime.ToString(dtFormat) + "><" + ChangeType.ToString() + ">";
+            string line = "<" + Path + "><" + DateTime.ToString(DtFormat) + "><" + ChangeType.ToString() + ">";
             if (AuxInfo != null) line += ("<" + AuxInfo + ">");
             return (line);
         }
@@ -237,12 +240,12 @@ namespace CodeWatcher
             {
                 switch (ChangeType)
                 {
-                    case ActionTypes.None:
+                    case ActionTypes.NONE:
                         return (false);
-                    case ActionTypes.Created:
-                    case ActionTypes.Deleted:
-                    case ActionTypes.Changed:
-                    case ActionTypes.Renamed:
+                    case ActionTypes.CREATED:
+                    case ActionTypes.DELETED:
+                    case ActionTypes.CHANGED:
+                    case ActionTypes.RENAMED:
                         return (ProjectPath != null);
                     default:
                         return (true);
@@ -270,9 +273,7 @@ namespace CodeWatcher
             if (string.IsNullOrEmpty(Path)) return (null);
 
             string ext = System.IO.Path.GetExtension(Path);
-            string myFolder;
-            if (ext == "") myFolder = Path;
-            else myFolder = System.IO.Path.GetDirectoryName(Path);
+            var myFolder = ext == "" ? Path : System.IO.Path.GetDirectoryName(Path);
             return (_getProjectPath(myFolder));
         }
 
@@ -299,7 +300,7 @@ namespace CodeWatcher
             }
         }
 
-        static TimeSpan oneSec = new TimeSpan(0, 0, 1);
+        static readonly TimeSpan OneSec = new TimeSpan(0, 0, 1);
 
         internal static bool EqualPathAndTime(ActivityItem fci1, ActivityItem fci2)
         {
@@ -307,7 +308,7 @@ namespace CodeWatcher
             if (fci1.Path == null || fci2.Path == null) return (false);
             return (
                 fci1.Path == fci2.Path &&
-                FileChangeTable.Equal(fci1.DateTime, fci2.DateTime, oneSec));
+                FileChangeTable.Equal(fci1.DateTime, fci2.DateTime, OneSec));
         }
     }
 }

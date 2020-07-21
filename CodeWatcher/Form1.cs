@@ -13,10 +13,10 @@ namespace CodeWatcher
         bool _dirtyTable;
 
         ErrorEventArgs _dirtyErrorEvent;
-        FileChangeWatcher _fcWatcher;
-        bool _loadingSettings = false; // prevents events making save before first load!!
-        MainPanel mainPanel;
-        ThemeController themeController;
+        readonly FileChangeWatcher _fcWatcher;
+        bool _loadingSettings; // prevents events making save before first load!!
+        readonly MainPanel _mainPanel;
+        readonly ThemeController _themeController;
 
         public Form1()
         {
@@ -60,18 +60,16 @@ namespace CodeWatcher
             };
 
             // watch this file structure
-            _fcWatcher = new FileChangeWatcher();
-            _fcWatcher.Extensions = new string[] { ".cs" };
+            _fcWatcher = new FileChangeWatcher { Extensions = new[] { ".cs" } };
             _fcWatcher.Changed += FolderChangeWatcher_Changed;
             _fcWatcher.Error += FolderChangeWatcher_Error;
-            //_fcWatcher.AutoSaveMinutesInterval = 3;
 
             eventScroller1.FileChangeWatcher = _fcWatcher;
 
-            themeController = new ThemeController();
-            themeController.Changed += Themer_Changed;
+            _themeController = new ThemeController();
+            _themeController.Changed += Themer_Changed;
 
-            mainPanel = new MainPanel(_fcWatcher, doubleBuffer1, themeController.Theme);
+            _mainPanel = new MainPanel(_fcWatcher, doubleBuffer1, _themeController.Theme);
 
             this.Icon = notifyIcon1.Icon;
             BaseForm.ApplicationIcon = notifyIcon1.Icon;
@@ -84,7 +82,31 @@ namespace CodeWatcher
             toolStripTextBoxWithLabelTimePerEdit.TextBox.EnterPressed += TextBox_EnterPressed1;
             useIdleEventsToolStripMenuItem.Checked = _fcWatcher.UseIdleEvents;
             advancedToolStripMenuItem.DropDownClosed += AdvancedToolStripMenuItem_DropDownClosed;
+
+            foreach (var eSrt in Enum.GetValues(typeof(EditSort)))
+            {
+                ToolStripRadioButtonMenuItem rb = new ToolStripRadioButtonMenuItem(eSrt.ToString());
+                rb.Tag = eSrt;
+                dayInfoSortToolStripMenuItem.DropDownItems.Add(rb);
+                rb.CheckedChanged += Rb_CheckedChanged;
+            }
+
             Application.Idle += Application_Idle;
+        }
+
+
+        private void _setEditSort(EditSort editSort)
+        {
+            foreach (ToolStripItem dropDownItem in dayInfoSortToolStripMenuItem.DropDownItems)
+            {
+                ToolStripRadioButtonMenuItem rb = dropDownItem as ToolStripRadioButtonMenuItem;
+                if (rb != null && ((EditSort)rb.Tag) == editSort) rb.Checked = true;
+            }
+        }
+        private void Rb_CheckedChanged(object sender, EventArgs e)
+        {
+            ToolStripRadioButtonMenuItem rb = sender as ToolStripRadioButtonMenuItem;
+            if (rb != null && rb.Checked) _mainPanel.SetEditSort((EditSort)rb.Tag);
         }
 
         private void AdvancedToolStripMenuItem_DropDownClosed(object sender, EventArgs e)
@@ -134,8 +156,8 @@ namespace CodeWatcher
 
         private void Themer_Changed(object sender, EventArgs e)
         {
-            eventScroller1.Theme = themeController.Theme;
-            themeController.Theme.Impose(this);
+            eventScroller1.Theme = _themeController.Theme;
+            _themeController.Theme.Impose(this);
             doubleBuffer1.Invalidate();
         }
 
@@ -149,8 +171,8 @@ namespace CodeWatcher
 
             if (_dirtyErrorEvent != null)
             {
-                textBoxWATCHOUTPUT.Text = "ERROR:";
-                textBoxWATCHOUTPUT.Text = _dirtyErrorEvent.ToString() + Environment.NewLine;
+                textBoxWATCHOUTPUT.Text = @"ERROR:";
+                textBoxWATCHOUTPUT.Text = _dirtyErrorEvent + Environment.NewLine;
                 _dirtyErrorEvent = null;
             }
         }
@@ -159,16 +181,15 @@ namespace CodeWatcher
         private delegate void AppendTextCallback(object sender, DoWorkEventArgs e);
         private void FolderChangeWatcher_Changed(object sender, DoWorkEventArgs e)
         {
-            ActivityItem fci = e.Argument as ActivityItem;
-            if (fci != null)
+            if (e.Argument is ActivityItem fci)
             {
                 if (textBoxWATCHOUTPUT.InvokeRequired)
                 {
-                    AppendTextCallback d = new AppendTextCallback(FolderChangeWatcher_Changed);
-                    textBoxWATCHOUTPUT.BeginInvoke(d, new object[] { sender, e });
+                    AppendTextCallback d = FolderChangeWatcher_Changed;
+                    textBoxWATCHOUTPUT.BeginInvoke(d, sender, e);
                 }
                 else
-                    textBoxWATCHOUTPUT.AppendText(fci.ToString() + Environment.NewLine);
+                    textBoxWATCHOUTPUT.AppendText(fci + Environment.NewLine);
 
             }
             _dirtyTable = true;
@@ -194,11 +215,10 @@ namespace CodeWatcher
             Properties.Settings.Default.PerEditMinutes = _fcWatcher.PerEditMinutes;
             Properties.Settings.Default.UseIdleEvents = _fcWatcher.UseIdleEvents;
             Properties.Settings.Default.Save();
-            themeController.SaveSettings();
-            mainPanel.SaveSettings();
+            _themeController.SaveSettings();
+            _mainPanel.SaveSettings();
 
-            if (_fcWatcher != null)
-                _fcWatcher.AutoWrite();
+            _fcWatcher?.AutoWrite();
         }
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -220,14 +240,14 @@ namespace CodeWatcher
             _fcWatcher.UseIdleEvents = Properties.Settings.Default.UseIdleEvents;
             useIdleEventsToolStripMenuItem.Checked = _fcWatcher.UseIdleEvents;
 
-            showInfoColumnToolStripMenuItem.Checked = Properties.Settings.Default.ShowInfoColumn;
             showIdleRedLineToolStripMenuItem.Checked = Properties.Settings.Default.ShowIdleLine;
 
-            themeController.LoadSettings();
-            themeController.Theme.Impose(this);
-            mainPanel.LoadSettings();
+            _themeController.LoadSettings();
+            _themeController.Theme.Impose(this);
+            _mainPanel.LoadSettings();
             _loadingSettings = false;
 
+            _setEditSort(Properties.Settings.Default.EditSort);
             startCollectionToolStripMenuItem_Click(this, null);
 
         }
@@ -263,7 +283,7 @@ namespace CodeWatcher
         private void Form1_Shown(object sender, EventArgs e)
         {
             // hides on startup, no big deal
-            themeController.Theme.Impose(this);
+            _themeController.Theme.Impose(this);
 #if DEBUG == false
             this.Hide();
 #endif
@@ -275,10 +295,6 @@ namespace CodeWatcher
             this.Activate();
         }
 
-        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
         private void hideToolStripMenuItem_Click(object sender, EventArgs e)
         {
             _saveSettings();
@@ -292,51 +308,51 @@ namespace CodeWatcher
 
         private void button2_Click(object sender, EventArgs e)
         {
-            mainPanel.IncrementDayStart(-1);
+            _mainPanel.IncrementDayStart(-1);
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            mainPanel.IncrementDayStart(1);
+            _mainPanel.IncrementDayStart(1);
         }
 
         private void buttonINC_Click(object sender, EventArgs e)
         {
-            mainPanel.IncrementRowHeight(1);
+            _mainPanel.IncrementRowHeight(1);
         }
         private void buttonDEC_Click(object sender, EventArgs e)
         {
-            mainPanel.IncrementRowHeight(-1);
+            _mainPanel.IncrementRowHeight(-1);
         }
 
         private void lastWeekToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.ShowPresentToLast(TimePeriod.ONEWEEK);
+            _mainPanel.ShowPresentToLast(TimePeriod.ONEWEEK);
         }
 
         private void lastMonthToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.ShowPresentToLast(TimePeriod.ONEMONTH);
+            _mainPanel.ShowPresentToLast(TimePeriod.ONEMONTH);
         }
 
         private void last3MonthsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.ShowPresentToLast(TimePeriod.THREEMONTHS);
+            _mainPanel.ShowPresentToLast(TimePeriod.THREEMONTHS);
         }
 
         private void last6MonthsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.ShowPresentToLast(TimePeriod.SIXMONTHS);
+            _mainPanel.ShowPresentToLast(TimePeriod.SIXMONTHS);
         }
 
         private void lastYearToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.ShowPresentToLast(TimePeriod.ONEYEAR);
+            _mainPanel.ShowPresentToLast(TimePeriod.ONEYEAR);
         }
 
         private void allTimeToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.ShowPresentToLast(TimePeriod.ALLTIME);
+            _mainPanel.ShowPresentToLast(TimePeriod.ALLTIME);
         }
 
 
@@ -352,14 +368,13 @@ namespace CodeWatcher
 
         private void clearRecordToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var dR = MessageBox.Show("Clear?", "This will PERMANENTLY clear the record. Are you sure?",
+            var dR = MessageBox.Show(@"Clear?", @"This will PERMANENTLY clear the record. Are you sure?",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation);
             if (dR == DialogResult.Yes)
             {
-                if (_fcWatcher != null)
-                    _fcWatcher.ClearAll();
-                mainPanel.ScrollToTop();
-                mainPanel.ShowPresentToLast(TimePeriod.ONEWEEK);
+                _fcWatcher?.ClearAll();
+                _mainPanel.ScrollToTop();
+                _mainPanel.ShowPresentToLast(TimePeriod.ONEWEEK);
             }
         }
 
@@ -376,7 +391,7 @@ namespace CodeWatcher
         {
             if (_fcWatcher != null)
             {
-               
+
                 _fcWatcher.LogPath = fileFieldAndBrowserLOG.FileName;
                 _fcWatcher.WatchPath = fileFieldAndBrowserWATCH.FileName;
                 _fcWatcher.Start();
@@ -404,17 +419,20 @@ namespace CodeWatcher
         {
             //Create a new process info structure.
             pauseCollectionToolStripMenuItem_Click(sender, e);
-            ProcessStartInfo pInfo = new ProcessStartInfo();
+            ProcessStartInfo pInfo = new ProcessStartInfo { FileName = fileFieldAndBrowserLOG.FileName };
             //Set the file name member of the process info structure.
-            pInfo.FileName = fileFieldAndBrowserLOG.FileName;
             //Start the process.
             Process p = Process.Start(pInfo);
             //Wait for the window to finish loading.
-            p.WaitForInputIdle();
-            //Wait for the process to end.
-            p.WaitForExit();
+            if (p != null)
+            {
+                p.WaitForInputIdle();
+                //Wait for the process to end.
+                p.WaitForExit();
+            }
+
             startCollectionToolStripMenuItem_Click(sender, e);
-            MessageBox.Show("Code continuing...");
+            MessageBox.Show(@"Code continuing...");
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -423,11 +441,11 @@ namespace CodeWatcher
         }
         private void button6_Click(object sender, EventArgs e)
         {
-            mainPanel.IncrementRow(-1);
+            _mainPanel.IncrementRow(-1);
         }
         private void button7_Click(object sender, EventArgs e)
         {
-            mainPanel.IncrementRow(1);
+            _mainPanel.IncrementRow(1);
         }
 
 
@@ -438,12 +456,12 @@ namespace CodeWatcher
             try
             {
                 FileChangeTester myTester = new FileChangeTester(_fcWatcher.WatchPath);
-                string testLogPath = Path.Combine(Path.GetDirectoryName(_fcWatcher.LogPath), "testLog.txt");
+                string testLogPath = Path.Combine(Path.GetDirectoryName(_fcWatcher.LogPath) ?? string.Empty, "testLog.txt");
                 myTester.GenerateTestLog(testLogPath, 1000, DateTime.Now.AddYears(-1), DateTime.Now);
             }
             catch
             {
-
+                // ignored
             }
         }
 
@@ -462,52 +480,51 @@ namespace CodeWatcher
 
         private void lightToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            themeController.SetLightTheme(Color.MidnightBlue, Color.Orange, Color.Lime);
+            _themeController.SetLightTheme(Color.MidnightBlue, Color.Orange, Color.Lime);
         }
 
         private void darkToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            themeController.SetDarkTheme(Color.ForestGreen, Color.DodgerBlue, Color.Lime);
+            _themeController.SetDarkTheme(Color.ForestGreen, Color.DodgerBlue, Color.Lime);
         }
 
         private void specialToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            themeController.SetDarkTheme(Color.Orange, Color.Maroon, Color.Lime);
+            _themeController.SetDarkTheme(Color.Orange, Color.Maroon, Color.Lime);
         }
 
         private void darkRandomToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            themeController.RandomDarkTheme();
+            _themeController.RandomDarkTheme();
         }
 
         private void lightRandomToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            themeController.RandomLightTheme();
+            _themeController.RandomLightTheme();
         }
 
 
-        ProjectListForm projectListForm;
+        ProjectListForm _projectListForm;
         private void projectListToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (projectListForm == null)
+            if (_projectListForm == null)
             {
-                projectListForm = new ProjectListForm();
-                projectListForm.FileChangeWatcher = _fcWatcher;
+                _projectListForm = new ProjectListForm { FileChangeWatcher = _fcWatcher };
             }
 
-            projectListForm.Show(this);
+            _projectListForm.Show(this);
         }
 
 
 
         private void copyWorkSummaryToClipboardToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.CopyWorkSummaryToClipboard();
+            _mainPanel.CopyWorkSummaryToClipboard();
         }
 
         private void clearEditsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.RemoveTimeSelectionEdits();
+            _mainPanel.RemoveTimeSelectionEdits();
         }
 
         private void timeBoxToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
@@ -536,15 +553,19 @@ namespace CodeWatcher
             sameRandomColorToolStripMenuItem.Enabled = projectsSelected;
         }
 
-        private void showInfoColumnToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
-        {
-            mainPanel.ShowInfoColumn(showInfoColumnToolStripMenuItem.Checked);
-        }
-
         private void showIdleRedLineToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-            mainPanel.ShowIdleLine(showIdleRedLineToolStripMenuItem.Checked);
+            _mainPanel.ShowIdleLine(showIdleRedLineToolStripMenuItem.Checked);
         }
+        private void compensatedDayScalingToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            _mainPanel.ShowCompensatedScale(compensatedDayScalingToolStripMenuItem.Checked);
+        }
+        private void showVerticalCursorToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            _mainPanel.ShowVerticalCursor(showVerticalCursorToolStripMenuItem.Checked);
+        }
+
         private void showToolbarToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
             flowLayoutPanel1.Visible = showToolbarToolStripMenuItem.Checked;
@@ -557,32 +578,32 @@ namespace CodeWatcher
 
         private void colorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.EditColor();
+            _mainPanel.EditColor();
         }
 
         private void randomColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.RandomColors();
+            _mainPanel.RandomColors();
         }
 
         private void projectColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.EditColor();
+            _mainPanel.EditColor();
         }
 
         private void projectRandomColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.RandomColors();
+            _mainPanel.RandomColors();
         }
 
         private void projectSameRandomColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.SameRandomColor();
+            _mainPanel.SameRandomColor();
         }
 
         private void sameRandomColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            mainPanel.SameRandomColor();
+            _mainPanel.SameRandomColor();
         }
 
         private void clearTimeSelectionToolStripMenuItem_Click(object sender, EventArgs e)
@@ -600,7 +621,15 @@ namespace CodeWatcher
                 doubleBuffer1.Refresh();
                 return true;
             }
+
+            if (Form.ModifierKeys == Keys.None && keyData == Keys.Oemtilde)
+            {
+                _mainPanel.StepRowHeights();
+                return (true);
+            }
+
             return base.ProcessDialogKey(keyData);
         }
+
     }
 }

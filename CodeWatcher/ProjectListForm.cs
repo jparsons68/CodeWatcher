@@ -50,24 +50,25 @@ namespace CodeWatcher
             _rePop();
         }
 
-        List<FileChangeProject> _localProjList = new List<FileChangeProject>();
-        bool amPopulating = false;
+        readonly List<FileChangeProject> _localProjList = new List<FileChangeProject>();
+        bool _amPopulating;
         private void _rePop()
         {
-            if (amPopulating) return;
+            if (_amPopulating) return;
 
-            amPopulating = true;
-            var _table = (_fcWatcher != null) ? _fcWatcher.Table : null;
+            _amPopulating = true;
+            var table = _fcWatcher?.Table;
 
-            if (_equal(_localProjList, _table) == false)
+            if (_equal(_localProjList, table) == false)
             {
                 checkedListBox1.Items.Clear();
                 _localProjList.Clear();
-                foreach (var proj in _table.ProjectCollection)
-                {
-                    _localProjList.Add(proj);
-                    checkedListBox1.Items.Add(proj, proj.Visible);
-                }
+                if (table != null)
+                    foreach (var proj in table.ProjectCollection)
+                    {
+                        _localProjList.Add(proj);
+                        checkedListBox1.Items.Add(proj, proj.Visible);
+                    }
             }
 
             int i = 0;
@@ -77,7 +78,7 @@ namespace CodeWatcher
                 i++;
             }
 
-            amPopulating = false;
+            _amPopulating = false;
         }
 
         private bool _equal(List<FileChangeProject> myList, FileChangeTable table)
@@ -107,10 +108,7 @@ namespace CodeWatcher
 
         private void checkedListBox1_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            if (e.NewValue == CheckState.Checked)
-                _localProjList[e.Index].Visible = true;
-            else
-                _localProjList[e.Index].Visible = false;
+            _localProjList[e.Index].Visible = e.NewValue == CheckState.Checked;
 
             _fcWatcher.UpdateActivity();
             _fcWatcher.FireEvent();

@@ -21,21 +21,20 @@ namespace CodeWatcher
             new SolidBrush(Color.FromArgb(255, 255, 255))
         };
 
-        private static double _min=0, _max=1, _delta=1;
-        private static readonly int n = CList.Length;
+        private static double _min, _delta=1;
+        private static readonly int N = CList.Length;
 
         public static void SetRange(double min, double max)
         {
             _min = min;
-            _max = max;
             _delta = max - min;
         }
 
         public static Brush GetBrush(double v)
         {
-            int idx = (int)(n * (v - _min) / _delta);
+            int idx = (int)(N * (v - _min) / _delta);
             if (idx < 0) idx = 0;
-            if (idx > n - 1) idx = n - 1;
+            if (idx > N - 1) idx = N - 1;
             return (CList[idx]);
         }
 

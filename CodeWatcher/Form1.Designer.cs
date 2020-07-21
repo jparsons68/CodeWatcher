@@ -64,10 +64,12 @@
             this.projectSameRandomColorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.listingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.showInfoColumnToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showToolbarToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showPathsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.showIdleRedLineToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.compensatedDayScalingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.showVerticalCursorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.dayInfoSortToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.advancedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.clearRecordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pauseCollectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -227,7 +229,7 @@
             this.randomColorToolStripMenuItem,
             this.sameRandomColorToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(297, 114);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(297, 92);
             this.contextMenuStrip1.Opening += new System.ComponentModel.CancelEventHandler(this.contextMenuStrip1_Opening);
             // 
             // projectListToolStripMenuItem1
@@ -289,14 +291,14 @@
             // hideToolStripMenuItem
             // 
             this.hideToolStripMenuItem.Name = "hideToolStripMenuItem";
-            this.hideToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.hideToolStripMenuItem.Size = new System.Drawing.Size(99, 22);
             this.hideToolStripMenuItem.Text = "Hide";
             this.hideToolStripMenuItem.Click += new System.EventHandler(this.hideToolStripMenuItem_Click);
             // 
             // exitToolStripMenuItem1
             // 
             this.exitToolStripMenuItem1.Name = "exitToolStripMenuItem1";
-            this.exitToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.exitToolStripMenuItem1.Size = new System.Drawing.Size(99, 22);
             this.exitToolStripMenuItem1.Text = "Exit";
             this.exitToolStripMenuItem1.Click += new System.EventHandler(this.exitToolStripMenuItem1_Click);
             // 
@@ -349,42 +351,42 @@
             // lastWeekToolStripMenuItem
             // 
             this.lastWeekToolStripMenuItem.Name = "lastWeekToolStripMenuItem";
-            this.lastWeekToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.lastWeekToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.lastWeekToolStripMenuItem.Text = "Last Week";
             this.lastWeekToolStripMenuItem.Click += new System.EventHandler(this.lastWeekToolStripMenuItem_Click);
             // 
             // lastMonthToolStripMenuItem
             // 
             this.lastMonthToolStripMenuItem.Name = "lastMonthToolStripMenuItem";
-            this.lastMonthToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.lastMonthToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.lastMonthToolStripMenuItem.Text = "Last Month";
             this.lastMonthToolStripMenuItem.Click += new System.EventHandler(this.lastMonthToolStripMenuItem_Click);
             // 
             // last3MonthsToolStripMenuItem
             // 
             this.last3MonthsToolStripMenuItem.Name = "last3MonthsToolStripMenuItem";
-            this.last3MonthsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.last3MonthsToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.last3MonthsToolStripMenuItem.Text = "Last 3 Months";
             this.last3MonthsToolStripMenuItem.Click += new System.EventHandler(this.last3MonthsToolStripMenuItem_Click);
             // 
             // last6MonthsToolStripMenuItem
             // 
             this.last6MonthsToolStripMenuItem.Name = "last6MonthsToolStripMenuItem";
-            this.last6MonthsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.last6MonthsToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.last6MonthsToolStripMenuItem.Text = "Last 6 Months ";
             this.last6MonthsToolStripMenuItem.Click += new System.EventHandler(this.last6MonthsToolStripMenuItem_Click);
             // 
             // lastYearToolStripMenuItem
             // 
             this.lastYearToolStripMenuItem.Name = "lastYearToolStripMenuItem";
-            this.lastYearToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.lastYearToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.lastYearToolStripMenuItem.Text = "Last Year";
             this.lastYearToolStripMenuItem.Click += new System.EventHandler(this.lastYearToolStripMenuItem_Click);
             // 
             // allTimeToolStripMenuItem
             // 
             this.allTimeToolStripMenuItem.Name = "allTimeToolStripMenuItem";
-            this.allTimeToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.allTimeToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
             this.allTimeToolStripMenuItem.Text = "All time";
             this.allTimeToolStripMenuItem.Click += new System.EventHandler(this.allTimeToolStripMenuItem_Click);
             // 
@@ -437,23 +439,15 @@
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.showInfoColumnToolStripMenuItem,
             this.showToolbarToolStripMenuItem,
             this.showPathsToolStripMenuItem,
-            this.showIdleRedLineToolStripMenuItem});
+            this.showIdleRedLineToolStripMenuItem,
+            this.compensatedDayScalingToolStripMenuItem,
+            this.showVerticalCursorToolStripMenuItem,
+            this.dayInfoSortToolStripMenuItem});
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             this.optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
             this.optionsToolStripMenuItem.Text = "Options";
-            // 
-            // showInfoColumnToolStripMenuItem
-            // 
-            this.showInfoColumnToolStripMenuItem.Checked = true;
-            this.showInfoColumnToolStripMenuItem.CheckOnClick = true;
-            this.showInfoColumnToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.showInfoColumnToolStripMenuItem.Name = "showInfoColumnToolStripMenuItem";
-            this.showInfoColumnToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.showInfoColumnToolStripMenuItem.Text = "Show Info Column";
-            this.showInfoColumnToolStripMenuItem.CheckedChanged += new System.EventHandler(this.showInfoColumnToolStripMenuItem_CheckedChanged);
             // 
             // showToolbarToolStripMenuItem
             // 
@@ -461,7 +455,7 @@
             this.showToolbarToolStripMenuItem.CheckOnClick = true;
             this.showToolbarToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.showToolbarToolStripMenuItem.Name = "showToolbarToolStripMenuItem";
-            this.showToolbarToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showToolbarToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
             this.showToolbarToolStripMenuItem.Text = "Show Toolbar";
             this.showToolbarToolStripMenuItem.CheckedChanged += new System.EventHandler(this.showToolbarToolStripMenuItem_CheckedChanged);
             // 
@@ -471,7 +465,7 @@
             this.showPathsToolStripMenuItem.CheckOnClick = true;
             this.showPathsToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.showPathsToolStripMenuItem.Name = "showPathsToolStripMenuItem";
-            this.showPathsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showPathsToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
             this.showPathsToolStripMenuItem.Text = "Show Paths";
             this.showPathsToolStripMenuItem.CheckedChanged += new System.EventHandler(this.showPathsToolStripMenuItem_CheckedChanged);
             // 
@@ -481,9 +475,35 @@
             this.showIdleRedLineToolStripMenuItem.CheckOnClick = true;
             this.showIdleRedLineToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.showIdleRedLineToolStripMenuItem.Name = "showIdleRedLineToolStripMenuItem";
-            this.showIdleRedLineToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.showIdleRedLineToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
             this.showIdleRedLineToolStripMenuItem.Text = "Show Idle Red Line";
             this.showIdleRedLineToolStripMenuItem.CheckedChanged += new System.EventHandler(this.showIdleRedLineToolStripMenuItem_CheckedChanged);
+            // 
+            // compensatedDayScalingToolStripMenuItem
+            // 
+            this.compensatedDayScalingToolStripMenuItem.Checked = true;
+            this.compensatedDayScalingToolStripMenuItem.CheckOnClick = true;
+            this.compensatedDayScalingToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.compensatedDayScalingToolStripMenuItem.Name = "compensatedDayScalingToolStripMenuItem";
+            this.compensatedDayScalingToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            this.compensatedDayScalingToolStripMenuItem.Text = "Compensated Day Scaling";
+            this.compensatedDayScalingToolStripMenuItem.CheckedChanged += new System.EventHandler(this.compensatedDayScalingToolStripMenuItem_CheckedChanged);
+            // 
+            // showVerticalCursorToolStripMenuItem
+            // 
+            this.showVerticalCursorToolStripMenuItem.Checked = true;
+            this.showVerticalCursorToolStripMenuItem.CheckOnClick = true;
+            this.showVerticalCursorToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.showVerticalCursorToolStripMenuItem.Name = "showVerticalCursorToolStripMenuItem";
+            this.showVerticalCursorToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            this.showVerticalCursorToolStripMenuItem.Text = "Show Vertical Cursor";
+            this.showVerticalCursorToolStripMenuItem.CheckedChanged += new System.EventHandler(this.showVerticalCursorToolStripMenuItem_CheckedChanged);
+            // 
+            // dayInfoSortToolStripMenuItem
+            // 
+            this.dayInfoSortToolStripMenuItem.Name = "dayInfoSortToolStripMenuItem";
+            this.dayInfoSortToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            this.dayInfoSortToolStripMenuItem.Text = "Day Info Sort";
             // 
             // advancedToolStripMenuItem
             // 
@@ -506,42 +526,42 @@
             // clearRecordToolStripMenuItem
             // 
             this.clearRecordToolStripMenuItem.Name = "clearRecordToolStripMenuItem";
-            this.clearRecordToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.clearRecordToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
             this.clearRecordToolStripMenuItem.Text = "Clear Record";
             this.clearRecordToolStripMenuItem.Click += new System.EventHandler(this.clearRecordToolStripMenuItem_Click);
             // 
             // pauseCollectionToolStripMenuItem
             // 
             this.pauseCollectionToolStripMenuItem.Name = "pauseCollectionToolStripMenuItem";
-            this.pauseCollectionToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.pauseCollectionToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
             this.pauseCollectionToolStripMenuItem.Text = "Pause Collection";
             this.pauseCollectionToolStripMenuItem.Click += new System.EventHandler(this.pauseCollectionToolStripMenuItem_Click);
             // 
             // startCollectionToolStripMenuItem
             // 
             this.startCollectionToolStripMenuItem.Name = "startCollectionToolStripMenuItem";
-            this.startCollectionToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.startCollectionToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
             this.startCollectionToolStripMenuItem.Text = "Start Collection";
             this.startCollectionToolStripMenuItem.Click += new System.EventHandler(this.startCollectionToolStripMenuItem_Click);
             // 
             // editLogFileToolStripMenuItem
             // 
             this.editLogFileToolStripMenuItem.Name = "editLogFileToolStripMenuItem";
-            this.editLogFileToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.editLogFileToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
             this.editLogFileToolStripMenuItem.Text = "Edit Log File...";
             this.editLogFileToolStripMenuItem.Click += new System.EventHandler(this.editLogFileToolStripMenuItem_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(228, 6);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(307, 6);
             // 
             // toolStripTextBoxWithLabelTimePerEdit
             // 
             this.toolStripTextBoxWithLabelTimePerEdit.BackColor = System.Drawing.Color.White;
             this.toolStripTextBoxWithLabelTimePerEdit.LabelText = "ABC:";
             this.toolStripTextBoxWithLabelTimePerEdit.Name = "toolStripTextBoxWithLabelTimePerEdit";
-            this.toolStripTextBoxWithLabelTimePerEdit.Size = new System.Drawing.Size(171, 21);
+            this.toolStripTextBoxWithLabelTimePerEdit.Size = new System.Drawing.Size(250, 21);
             this.toolStripTextBoxWithLabelTimePerEdit.Text = "toolStripTextBoxWithLabel2";
             this.toolStripTextBoxWithLabelTimePerEdit.TextBoxText = "";
             // 
@@ -551,7 +571,7 @@
             this.useIdleEventsToolStripMenuItem.CheckOnClick = true;
             this.useIdleEventsToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.useIdleEventsToolStripMenuItem.Name = "useIdleEventsToolStripMenuItem";
-            this.useIdleEventsToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.useIdleEventsToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
             this.useIdleEventsToolStripMenuItem.Text = "Use Idle Events";
             this.useIdleEventsToolStripMenuItem.CheckedChanged += new System.EventHandler(this.useIdleEventsToolStripMenuItem_CheckedChanged);
             // 
@@ -560,14 +580,14 @@
             this.toolStripTextBoxWithLabelIdleTime.BackColor = System.Drawing.Color.White;
             this.toolStripTextBoxWithLabelIdleTime.LabelText = "ABC:";
             this.toolStripTextBoxWithLabelIdleTime.Name = "toolStripTextBoxWithLabelIdleTime";
-            this.toolStripTextBoxWithLabelIdleTime.Size = new System.Drawing.Size(171, 21);
+            this.toolStripTextBoxWithLabelIdleTime.Size = new System.Drawing.Size(250, 21);
             this.toolStripTextBoxWithLabelIdleTime.Text = "toolStripTextBoxWithLabel1";
             this.toolStripTextBoxWithLabelIdleTime.TextBoxText = "";
             // 
             // toolStripMenuItem3
             // 
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(228, 6);
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(307, 6);
             // 
             // testsToolStripMenuItem
             // 
@@ -576,7 +596,7 @@
             this.startRandomEditsSimulationToolStripMenuItem,
             this.endSimulationToolStripMenuItem});
             this.testsToolStripMenuItem.Name = "testsToolStripMenuItem";
-            this.testsToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.testsToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
             this.testsToolStripMenuItem.Text = "Tests";
             // 
             // generateTestLogFileToolStripMenuItem
@@ -609,7 +629,7 @@
             this.darkRandomToolStripMenuItem,
             this.lightRandomToolStripMenuItem});
             this.themeToolStripMenuItem.Name = "themeToolStripMenuItem";
-            this.themeToolStripMenuItem.Size = new System.Drawing.Size(231, 22);
+            this.themeToolStripMenuItem.Size = new System.Drawing.Size(310, 22);
             this.themeToolStripMenuItem.Text = "Theme";
             // 
             // lightToolStripMenuItem
@@ -891,7 +911,6 @@
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem projectListToolStripMenuItem1;
-        private System.Windows.Forms.ToolStripMenuItem showInfoColumnToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem editToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem copyWorkSummaryToClipboardToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showToolbarToolStripMenuItem;
@@ -911,6 +930,9 @@
         private System.Windows.Forms.ToolStripMenuItem clearEditsInSelectedTimeBoxesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem useIdleEventsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem clearTimeSelectionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem compensatedDayScalingToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem showVerticalCursorToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem dayInfoSortToolStripMenuItem;
     }
 }
 

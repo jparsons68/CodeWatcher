@@ -1,5 +1,4 @@
-﻿using System;
-using System.Drawing;
+﻿using System.Drawing;
 using Syncfusion.Windows.Forms;
 
 namespace CodeWatcher
@@ -22,14 +21,11 @@ namespace CodeWatcher
 
         public string InfoText
         {
-            get { return (label1.Text); }
-            set { label1.Text = value; }
+            get => (label1.Text);
+            set => label1.Text = value;
         }
 
-        public ColorUIControl.ColorCollection UserCustomColors
-        {
-            get { return colorUIControl1.UserCustomColors; }
-        }
+        public ColorUIControl.ColorCollection UserCustomColors => colorUIControl1.UserCustomColors;
 
         public void AppendUserColors(Color color)
         {

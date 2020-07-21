@@ -9,11 +9,11 @@ namespace CodeWatcher
 {
     public class FileChangeWatcher : IDisposable
     {
-        FileSystemWatcher _watcher;
-        UserActivity _userAct;
-        string _watchPath;
-        string _logPath;
-        public double _userIdleMinutes = 5;
+        private FileSystemWatcher _watcher;
+        private UserActivity _userAct;
+        private string _watchPath;
+        private string _logPath;
+        private double _userIdleMinutes = 5;
         public event EventHandler<DoWorkEventArgs> Changed;
         public event ErrorEventHandler Error;
         public event EventHandler SortProjectsByChanged;
@@ -107,7 +107,7 @@ namespace CodeWatcher
 
         public SortBy SortProjectsBy
         {
-            get { return (Table != null ? Table.SortProjectsBy : SortBy.Alphabetical); }
+            get { return (Table != null ? Table.SortProjectsBy : SortBy.ALPHABETICAL); }
             set
             {
                 if (Table != null) Table.SortProjectsBy = value;

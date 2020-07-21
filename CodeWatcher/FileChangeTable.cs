@@ -11,12 +11,12 @@ namespace CodeWatcher
     {
         string _logPath;
         private readonly TimerPlus _saveTimer;
-        private readonly object tableLock = new object();
+        private readonly object _tableLock = new object();
 
         public DateTime? SelectionStartDate { get; private set; }
         public DateTime? SelectionEndDate { get; private set; }
 
-        public bool SelectionState { get { return (SelectionStartDate != null && SelectionEndDate != null); } }
+        public bool SelectionState => (SelectionStartDate != null && SelectionEndDate != null);
 
         public bool IsInSelectedRange(DateTime dt)
         {
@@ -37,7 +37,7 @@ namespace CodeWatcher
         {
             SelectionStartDate = null;
             SelectionEndDate = null;
-            ActivityTraceBuilder.Buildv2(this);
+            ActivityTraceBuilder.Build(this);
         }
 
         public void RemoveTimeSelectionEdits()
@@ -52,9 +52,7 @@ namespace CodeWatcher
 
         public FileChangeTable(string logPath)
         {
-            _saveTimer = new TimerPlus();
-            _saveTimer.Interval = 10000;
-            _saveTimer.AutoReset = false;
+            _saveTimer = new TimerPlus {Interval = 10000, AutoReset = false};
             _saveTimer.Elapsed += _saveTimer_Elapsed;
             _saveTimer.Enabled = false;
 
@@ -70,7 +68,7 @@ namespace CodeWatcher
             {
                 if (_logPath != value)
                 {
-                    lock (tableLock)
+                    lock (_tableLock)
                     {
                         _logPath = value;
                         _readFromFileToItemCollection(_logPath);
@@ -78,23 +76,14 @@ namespace CodeWatcher
                         _setTimeExtents();
                         _organizeIntoProjects();
                         _applySavedProjectSettings();
-                        ActivityTraceBuilder.Buildv2(this);
+                        ActivityTraceBuilder.Build(this);
                     }
                 }
             }
         }
 
 
-
-        public int DayCount
-        {
-            get
-            {
-                var proj = ProjectCollection.FirstOrDefault();
-                return (proj != null ? proj.DaysCollection.Count : 0);
-            }
-        }
-        public int ItemCount { get { return ItemCollection.Count; } }
+        public int ItemCount => ItemCollection.Count;
 
         public List<ActivityItem> ItemCollection { get; set; } = new List<ActivityItem>();
         public List<FileChangeProject> ProjectCollection { get; set; } = new List<FileChangeProject>();
@@ -124,13 +113,13 @@ namespace CodeWatcher
                 SelectionEndDate = null;
             }
 
-            if (recalc) ActivityTraceBuilder.Buildv2(this);
+            if (recalc) ActivityTraceBuilder.Build(this);
         }
 
-        SortBy _sortProjectsBy = SortBy.Alphabetical;
+        SortBy _sortProjectsBy = SortBy.ALPHABETICAL;
         public SortBy SortProjectsBy
         {
-            get { return (_sortProjectsBy); }
+            get => (_sortProjectsBy);
             set
             {
                 if (_sortProjectsBy != value)
@@ -151,10 +140,10 @@ namespace CodeWatcher
             return (false);
         }
 
-        public DateTime? NextSave { get { return (_saveTimer.DueTime); } }
+        public DateTime? NextSave => (_saveTimer.DueTime);
         public DateTime? LastSave { get; private set; }
         public uint SaveCount { get; private set; }
-        public double MsRemaining { get { return _saveTimer.MsRemaining; } }
+        public double MsRemaining => _saveTimer.MsRemaining;
 
         void _setDirty(bool b = true)
         {
@@ -164,18 +153,18 @@ namespace CodeWatcher
 
         private void _saveTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            bool state = Write(5);
+            Write(5);
         }
 
-        static ActionTypes[] _priorityOrder = new ActionTypes[] {
-            ActionTypes.Deleted,
-            ActionTypes.Renamed,
-            ActionTypes.Created,
-            ActionTypes.Changed,
-            ActionTypes.UserIdle,
-        ActionTypes.Resume,
-        ActionTypes.Suspend,
-        ActionTypes.None
+        private static readonly ActionTypes[] _priorityOrder = new[] {
+            ActionTypes.DELETED,
+            ActionTypes.RENAMED,
+            ActionTypes.CREATED,
+            ActionTypes.CHANGED,
+            ActionTypes.USER_IDLE,
+        ActionTypes.RESUME,
+        ActionTypes.SUSPEND,
+        ActionTypes.NONE
         };
         internal static List<ActivityItem> SortAndSanitize(List<ActivityItem> collection)
         {
@@ -209,24 +198,13 @@ namespace CodeWatcher
         }
 
 
-        internal int GetDayIndex(DateTime dateTime)
-        {
-            try
-            {
-                return ProjectCollection.First().GetDayIndex(dateTime);
-            }
-            catch
-            {
-                return (-1);
-            }
-        }
 
         class DistinctItemComparer : IEqualityComparer<ActivityItem>
         {
             public bool Equals(ActivityItem x, ActivityItem y)
             {
                 return
-                    y != null && (x != null && ((x.Path == null ? "" : x.Path) == (y.Path == null ? "" : y.Path) &&
+                    y != null && (x != null && ((x.Path ?? "") == (y.Path ?? "") &&
                                                 x.DateTime == y.DateTime));
             }
 
@@ -351,16 +329,16 @@ namespace CodeWatcher
 
             switch (SortProjectsBy)
             {
-                case SortBy.MostRecentFirst:
+                case SortBy.MOST_RECENT_FIRST:
                     _sortTime(-1);
                     break;
-                case SortBy.EarliestFirst:
+                case SortBy.EARLIEST_FIRST:
                     _sortTime(1);
                     break;
-                case SortBy.Alphabetical:
+                case SortBy.ALPHABETICAL:
                     _sortAlpha(1);
                     break;
-                case SortBy.ReverseAlphabetical:
+                case SortBy.REVERSE_ALPHABETICAL:
                     _sortAlpha(-1);
                     break;
             }
@@ -394,7 +372,7 @@ namespace CodeWatcher
 
         internal bool Add(ActivityItem fci)
         {
-            lock (tableLock)
+            lock (_tableLock)
             {
                 bool state = false;
                 if (!ActivityItem.EqualPathAndTime(fci, ItemCollection.LastOrDefault()))
@@ -403,7 +381,7 @@ namespace CodeWatcher
                     _sortAndSanitize();
                     _setTimeExtents();
                     _organizeIntoProjects();
-                    ActivityTraceBuilder.Buildv2(this);
+                    ActivityTraceBuilder.Build(this);
                     state = true;
                 }
 
@@ -413,14 +391,14 @@ namespace CodeWatcher
 
         internal bool AddAcrossProjects(ActivityItem fci)
         {
-            lock (tableLock)
+            lock (_tableLock)
             {
                 int n = 0;
                 foreach (var proj in ProjectCollection)
                 {
                     var last = proj.Collection.LastOrDefault();
                     if (last != null && // go something to idle from
-                        (!last.ChangeType.HasAny(ActionTypes.Suspend | ActionTypes.UserIdle)) &&
+                        (!last.ChangeType.HasAny(ActionTypes.SUSPEND | ActionTypes.USER_IDLE)) &&
                         (DateTime.Now - last.DateTime).TotalMinutes <= ActivityTraceBuilder.PerEditMinutes
                     ) // within normal idle period
                     {
@@ -435,19 +413,19 @@ namespace CodeWatcher
                     _sortAndSanitize();
                     _setTimeExtents();
                     _organizeIntoProjects();
-                    ActivityTraceBuilder.Buildv2(this);
+                    ActivityTraceBuilder.Build(this);
                 }
                 return (n > 0);
             }
         }
 
 
-        static string _PROJECT_HEADER = "PROJECTS";
-        static string _PROJECT_ENDER = "PROJECTS END";
-        static string _SORTHEAD = "SORT:";
-        static string _SELECTSTART = "START:";
-        static string _SELECTEND = "END:";
-        static internal bool Write(List<FileChangeProject> projectCollection,
+        static readonly string _PROJECT_HEADER = "PROJECTS";
+        static readonly string _PROJECT_ENDER = "PROJECTS END";
+        static readonly string _SORTHEAD = "SORT:";
+        static readonly string _SELECTSTART = "START:";
+        static readonly string _SELECTEND = "END:";
+        internal static bool Write(List<FileChangeProject> projectCollection,
                                    List<ActivityItem> itemCollection,
                                    SortBy sortProjectsBy,
                                    DateTime? dt0,
@@ -487,7 +465,7 @@ namespace CodeWatcher
 
         public bool Write(int nAttempts = 1, int msWait = 500)
         {
-            lock (tableLock)
+            lock (_tableLock)
             {
                 if (LogPath == null) return (false);
 
@@ -541,7 +519,6 @@ namespace CodeWatcher
         {
             if (_savedProjectSettings == null) return;
 
-            Console.WriteLine("_applySavedProjectSettings");
             foreach (var proj in ProjectCollection)
                 proj.ExtractAndApplySetting(_savedProjectSettings);
 
@@ -557,8 +534,8 @@ namespace CodeWatcher
                 SelectionEndDate = null;
 
                 _savedProjectSettings = null;
-                DateTime? readDT0 = null;
-                DateTime? readDT1 = null;
+                DateTime? readDt0 = null;
+                DateTime? readDt1 = null;
 
                 using (StreamReader file = new StreamReader(path))
                 {
@@ -579,24 +556,23 @@ namespace CodeWatcher
 
                         if (projectRead)
                         {
-                            string extr;
-                            extr = Extract(line, _SORTHEAD);
-                            if (extr != null && Enum.TryParse(extr, out SortBy srt))
+                            var extr = Extract(line, _SORTHEAD);
+                            if (extr != null && Enum.TryParse(extr, true, out SortBy srt))
                             {
                                 this.SortProjectsBy = srt;
                                 continue;
                             }
                             extr = Extract(line, _SELECTSTART);
-                            if (extr != null && DateTime.TryParse(extr, out var tmpDT0))
+                            if (extr != null && DateTime.TryParse(extr, out var tmpDt0))
                             {
-                                readDT0 = tmpDT0;
+                                readDt0 = tmpDt0;
                                 continue;
                             }
 
                             extr = Extract(line, _SELECTEND);
-                            if (extr != null && DateTime.TryParse(extr, out var tmpDT1))
+                            if (extr != null && DateTime.TryParse(extr, out var tmpDt1))
                             {
-                                readDT1 = tmpDT1;
+                                readDt1 = tmpDt1;
                                 continue;
                             }
 
@@ -612,7 +588,7 @@ namespace CodeWatcher
                     }
                 }
 
-                SetTimeSelection(readDT0, readDT0, false);
+                SetTimeSelection(readDt0, readDt1, false);
             }
             catch (Exception)
             {
@@ -688,7 +664,7 @@ namespace CodeWatcher
             {
                 DateTime dt0 = ((DateTime)SelectionStartDate).Date;
                 DateTime dt1 = ((DateTime)SelectionEndDate).Date;
-                dt1 = ((DateTime)dt1).AddDays(-1);
+                dt1 = dt1.AddDays(-1);
                 sb.AppendLine("");
                 sb.AppendLine("PROJECTS WORKED");
                 foreach (var proj in EachVisibleProject())
@@ -707,9 +683,9 @@ namespace CodeWatcher
                 // dates worked as table
                 sb.AppendLine("");
                 sb.AppendLine("TABLE");
-                sb.AppendLine(((DateTime)dt0).ToString("dd/MM/yyyy") + " to " + ((DateTime)dt1).ToString("dd/MM/yyyy"));
+                sb.AppendLine(dt0.ToString("dd/MM/yyyy") + " to " + dt1.ToString("dd/MM/yyyy"));
                 var str = "";
-                foreach (DateTime dt in FileChangeTable.EachDay((DateTime)dt0, (DateTime)dt1))
+                foreach (DateTime dt in FileChangeTable.EachDay(dt0, dt1))
                     str += (dt.ToString("dd/MM/yyyy") + ", ");
                 sb.AppendLine(str);
 
@@ -717,7 +693,7 @@ namespace CodeWatcher
                 {
                     str = proj.Name + ", ";
 
-                    foreach (DateTime dt in FileChangeTable.EachDay((DateTime)dt0, (DateTime)dt1))
+                    foreach (DateTime dt in FileChangeTable.EachDay(dt0, dt1))
                     {
                         var pDay = proj.GetDay(dt);
                         str += ((pDay != null && pDay.Count > 0) ? "TRUE," : "FALSE,");
@@ -734,7 +710,7 @@ namespace CodeWatcher
 
         public void UpdateActivity()
         {
-            ActivityTraceBuilder.Buildv2(this);
+            ActivityTraceBuilder.Build(this);
         }
 
     }
@@ -744,7 +720,7 @@ namespace CodeWatcher
         public List<ActivityBaseBlock> Collection { get; set; }
         public double TotalMinutes { get; set; }
         public int EditCount { get; set; }
-        public string Summary { get { return (ActivityTraceBuilder.FormatSummary(TotalMinutes)); } }
+        public string Summary => (ActivityTraceBuilder.FormatSummary(TotalMinutes));
 
         public void Clear()
         {

@@ -99,10 +99,7 @@ namespace CodeWatcher
 
         public TimePeriod TimePeriod
         {
-            get
-            {
-                return (TimePeriod)comboBoxEnumControl1.SelectedItem;
-            }
+            get => (TimePeriod)comboBoxEnumControl1.SelectedItem;
             set
             {
                 comboBoxEnumControl1.SelectedItem = value;
@@ -205,9 +202,9 @@ namespace CodeWatcher
             _updateTimePeriod();
         }
 
-        int L_BDR = 10;
-        int B_BDR = 40;
-        string CODE_PRESENT_TIME = "presentTime";
+        readonly int L_BDR = 10;
+        readonly int B_BDR = 40;
+        readonly string CODE_PRESENT_TIME = "presentTime";
         private bool _flash;
 
         private void doubleBuffer1_PaintEvent(object sender, PaintEventArgs e)
@@ -217,9 +214,7 @@ namespace CodeWatcher
             var g = e.Graphics;
 
             g.Clear(_theme.Window.Background.Color);
-            if (_fcWatcher == null) return;
-            if (_fcWatcher.Table == null) return;
-            var table = _fcWatcher.Table;
+            var table = _fcWatcher?.Table;
             if (table == null) return;
 
 
@@ -258,7 +253,7 @@ namespace CodeWatcher
                 y = _dateTimeToPos(fci.DateTime);
                 Brush cbr;
                 Rectangle rect;
-                if (fci.ChangeType.HasAny(ActionTypes.Resume | ActionTypes.UserIdle | ActionTypes.Suspend))
+                if (fci.ChangeType.HasAny(ActionTypes.RESUME | ActionTypes.USER_IDLE | ActionTypes.SUSPEND))
                 {
                     txt = fci.DateTime.ToString(_timeFormat) + ": " +
                           fci.Project.Name + ": " +
@@ -289,7 +284,7 @@ namespace CodeWatcher
             g.DrawString("Last save:" + (table.LastSave != null ? ((DateTime)table.LastSave).ToString(_timeFormat) : "-"), Font, br, 200, dbY); dbY += Font.Height;
             g.DrawString("Last #:" + table.SaveCount.ToString(), Font, br, 200, dbY); dbY += Font.Height;
             g.DrawString("Next save:" + (table.NextSave != null ? ((DateTime)table.NextSave).ToString(_timeFormat) : "-"), Font, br, 200, dbY); dbY += Font.Height;
-            g.DrawString("Time remaining:" + (table.NextSave != null ? table.MsRemaining.ToString("F0") : "-"), Font, br, 200, dbY); dbY += Font.Height;
+            g.DrawString("Time remaining:" + (table.NextSave != null ? table.MsRemaining.ToString("F0") : "-"), Font, br, 200, dbY);
 
             g.ResetClip();
         }

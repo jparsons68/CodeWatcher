@@ -49,7 +49,7 @@ namespace CodeWatcher
 
 
 
-        public static void Buildv2(FileChangeTable table)
+        public static void Build(FileChangeTable table)
         {
             ClearActivity(table);
 
@@ -63,7 +63,7 @@ namespace CodeWatcher
                     foreach (var fci in proj.Collection)
                     {
                         bool isEdit =
-                            !fci.ChangeType.HasAny(ActionTypes.Resume | ActionTypes.Suspend | ActionTypes.UserIdle);
+                            !fci.ChangeType.HasAny(ActionTypes.RESUME | ActionTypes.SUSPEND | ActionTypes.USER_IDLE);
 
                         if (isEdit)
                             fci.Project.EditCount++;
@@ -90,11 +90,11 @@ namespace CodeWatcher
             int editCount = 0;
             foreach (var fci in masterList)
             {
-                if (fci.ChangeType.HasFlag(ActionTypes.Resume)) continue;
-                else if (UseIdleEvents && fci.ChangeType.HasAny(ActionTypes.Suspend | ActionTypes.UserIdle))
+                if (fci.ChangeType.HasFlag(ActionTypes.RESUME)) continue;
+                else if (UseIdleEvents && fci.ChangeType.HasAny(ActionTypes.SUSPEND | ActionTypes.USER_IDLE))
                 { // end at the user's idle
                     endActivity = fci.DateTime;
-                    _addActivityBlock();
+                    AddActivityBlock();
                     s0 = null;
                 }
                 else
@@ -102,19 +102,19 @@ namespace CodeWatcher
                     editCount++;
                     if (fci.DateTime > endActivity)
                     {
-                        _addActivityBlock();
+                        AddActivityBlock();
                         s0 = fci;
                     }
                     endActivity = fci.DateTime.AddMinutes(ActivityTraceBuilder.PerEditMinutes);
                 }
             }
-            _addActivityBlock();
+            AddActivityBlock();
 
             table.Activity.Collection = activityBaseBlocks;
             table.Activity.EditCount = editCount;
             table.Activity.TotalMinutes = activityBaseBlocks.Sum(blk => (blk.EndDate - blk.StartDate).TotalMinutes);
 
-            void _addActivityBlock()
+            void AddActivityBlock()
             {
                 if (s0 != null)
                 {
@@ -133,10 +133,6 @@ namespace CodeWatcher
         {
             this.StartDate = start;
             this.EndDate = end;
-        }
-        public ActivityBaseBlock(DateTime start)
-        {
-            this.StartDate = start;
         }
 
         public DateTime StartDate { get; set; }

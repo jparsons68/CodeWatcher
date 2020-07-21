@@ -8,7 +8,7 @@ namespace CodeWatcher
     public class SortButton : Label
     {
         ToolTipHelper ttH = new ToolTipHelper();
-        private SortBy _sortBy = SortBy.Alphabetical;
+        private SortBy _sortBy = SortBy.ALPHABETICAL;
 
         private bool _mouseIsDown;
         private bool _mouseInside;
@@ -125,19 +125,19 @@ namespace CodeWatcher
                 string helpTxt = null;
                 switch (_sortBy)
                 {
-                    case SortBy.MostRecentFirst:
+                    case SortBy.MOST_RECENT_FIRST:
                         helpTxt = "Sort by most recent first";
                         img = rev;
                         break;
-                    case SortBy.EarliestFirst:
+                    case SortBy.EARLIEST_FIRST:
                         helpTxt = "Sort by earliest first";
                         img = fwd;
                         break;
-                    case SortBy.Alphabetical:
+                    case SortBy.ALPHABETICAL:
                         helpTxt = "Sort Alphabetical";
                         img = fst;
                         break;
-                    case SortBy.ReverseAlphabetical:
+                    case SortBy.REVERSE_ALPHABETICAL:
                         helpTxt = "Sort Reverse Alphabetical";
                         img = rst;
                         break;

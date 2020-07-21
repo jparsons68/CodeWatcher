@@ -47,9 +47,6 @@
     <Setting Name="Highlight" Type="System.Drawing.Color" Scope="User">
       <Value Profile="(Default)">Lime</Value>
     </Setting>
-    <Setting Name="ShowInfoColumn" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
-    </Setting>
     <Setting Name="ShowPaths" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
@@ -67,6 +64,15 @@
     </Setting>
     <Setting Name="UseIdleEvents" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="ShowVerticalCursor" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="CompensatedScaling" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="EditSort" Type="CodeWatcher.EditSort" Scope="User">
+      <Value Profile="(Default)">NAME</Value>
     </Setting>
   </Settings>
 </SettingsFile>
